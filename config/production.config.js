@@ -58,7 +58,6 @@ const config = {
       authorizationUri: '/authentication/v1/authorize',
       accessTokenUri: '/authentication/v1/gettoken',
       baseUri: 'https://developer.api.autodesk.com',
-
       clientSecret: process.env.FORGE_CLIENT_SECRET,
       clientId: process.env.FORGE_CLIENT_ID,
 

@@ -76,8 +76,8 @@ const config = {
     },
 
     viewer: {
-      viewer3D: 'https://developer.api.autodesk.com/derivativeservice/v2/viewers/viewer3D.js?v=5.0',
-      style:    'https://developer.api.autodesk.com/derivativeservice/v2/viewers/style.css?v=5.0'
+      viewer3D: 'https://developer.api.autodesk.com/derivativeservice/v2/viewers/viewer3D.js?v=6.2',
+      style:    'https://developer.api.autodesk.com/derivativeservice/v2/viewers/style.css?v=6.2'
 
       // viewer3D: '/resources/libs/lmv/4.0.1/viewer3D.js',
       // threeJS:  '/resources/libs/lmv/4.0.1/three.js',
@@ -87,11 +87,11 @@ const config = {
 
   database: {
     type: 'mongo',
-    dbName: 'forge-rcdb',
-    user: '',
-    pass: '',
-    dbhost: 'localhost',
-    port: 27017,
+    dbName: 'forge',
+    user: 'raamac',
+    pass: 'Raamac_2018!',
+    dbhost: 'ds261302.mlab.com',
+    port: 61302,
     models: {
       configurator: {
         collection:'configurator.models'

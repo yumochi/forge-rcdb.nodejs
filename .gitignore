@@ -15,4 +15,6 @@ push-to-prod.sh
 config/development.config.js
 nginx
 TMP
-
+[#]*[#]
+*~
+.[#]*

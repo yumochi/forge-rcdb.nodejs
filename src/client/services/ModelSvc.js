@@ -69,6 +69,7 @@ export default class ModelSvc extends BaseSvc {
   //
   /////////////////////////////////////////////////////////
   getModel (dbName, modelId) {
+    console.log(dbName, modelId);
 
     const url = `/${dbName}/${modelId}`
 

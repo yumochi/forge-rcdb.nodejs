@@ -92,6 +92,7 @@ class ViewerView extends React.Component {
         ? 'calc(100vh)'
         : '100%'
     }
+    console.log(this.props.location.query);
 
     return (
       <div className="viewer-view" style={viewStyle}>
