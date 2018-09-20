@@ -88,8 +88,8 @@ const config = {
   database: {
     type: 'mongo',
     dbName: 'forge',
-    user: 'raamac',
-    pass: 'Raamac_2018!',
+    user: procecc.env.MONGO_USER,
+    pass: process.env.MONGO_PASS,
     dbhost: 'ds261302.mlab.com',
     port: 61302,
     models: {
