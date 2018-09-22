@@ -445,6 +445,23 @@ class ExtensionManager extends MultiModelExtensionBase {
   render () {
 
     const state = this.react.getState()
+    console.log('state')
+    console.log(state.extensions)
+
+
+    // let found = false;
+    // for (let i = 0; i < state.extensions.length; i++) {
+    //     if (state.extensions[i].id === "Viewing.Extension.MyAwesomeExtension") {
+    //         found = true;
+    //     }
+    // }
+
+    // if (!found){
+    // state.extensions.push({id: "Viewing.Extension.MyAwesomeExtension", name: "My Awsome Extension", enabled: false, options: {}})
+
+    // }
+
+    // console.log(state.extensions)
 
     const renderExtensions = sortBy(
       state.renderExtensions, (ext) => {

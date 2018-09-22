@@ -56,8 +56,8 @@ const config = {
       accessTokenUri: '/authentication/v1/gettoken',
 
       baseUri: 'https://developer.api.autodesk.com',
-      clientSecret: process.env.FORGE_DEV_CLIENT_SECRET,
-      clientId: process.env.FORGE_DEV_CLIENT_ID,
+      clientSecret: 'nc4U35G6ECP17N47',
+      clientId: 'GI2zbvtCGJJMdPljNcvjbADdNj53S4GQ',
 
       scope: [
         'data:read',
@@ -88,8 +88,8 @@ const config = {
   database: {
     type: 'mongo',
     dbName: 'forge',
-    user: procecc.env.MONGO_USER,
-    pass: process.env.MONGO_PASS,
+    user: 'raamac',
+    pass: 'Raamac_2018!',
     dbhost: 'ds261302.mlab.com',
     port: 61302,
     models: {

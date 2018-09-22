@@ -219,6 +219,7 @@ class ViewerConfigurator extends BaseComponent {
         '../../viewer.components/Viewer.Extensions.Dynamic/' +
         extension.id + '/index').then(() => {
 
+        console.log(extension.id)
         const extState = {
           [extension.id]: {}
         }

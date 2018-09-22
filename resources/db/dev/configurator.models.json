@@ -169,6 +169,14 @@
                         "id" : "Viewing.Extension.ShaderMaterial", 
                         "name" : "Shader Material"
                     }
+                    {
+                        "id" : "Viewing.Extension.MyAwesomeExtension",
+                        "name" : "My Awesome Extension", 
+                        "enabled" : false, 
+                        "options" : {
+
+                        }
+                    }
                 ]
             }
         }
