@@ -449,17 +449,17 @@ class ExtensionManager extends MultiModelExtensionBase {
     console.log(state.extensions)
 
 
-    // let found = false;
-    // for (let i = 0; i < state.extensions.length; i++) {
-    //     if (state.extensions[i].id === "Viewing.Extension.MyAwesomeExtension") {
-    //         found = true;
-    //     }
-    // }
+    let found = false;
+    for (let i = 0; i < state.extensions.length; i++) {
+        if (state.extensions[i].id === "Viewing.Extension.MyAwesomeExtension") {
+            found = true;
+        }
+    }
 
-    // if (!found){
-    // state.extensions.push({id: "Viewing.Extension.MyAwesomeExtension", name: "My Awsome Extension", enabled: false, options: {}})
+    if (!found){
+    state.extensions.push({id: "Viewing.Extension.MyAwesomeExtension", name: "My Awesome Extension", enabled: false, options: {}})
 
-    // }
+    }
 
     // console.log(state.extensions)
 
