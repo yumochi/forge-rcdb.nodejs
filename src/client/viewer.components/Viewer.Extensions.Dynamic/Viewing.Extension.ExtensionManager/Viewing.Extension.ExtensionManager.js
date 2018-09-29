@@ -445,21 +445,32 @@ class ExtensionManager extends MultiModelExtensionBase {
   render () {
 
     const state = this.react.getState()
-    console.log('state')
-    console.log(state.extensions)
 
+    // console.log(state)
 
-    let found = false;
-    for (let i = 0; i < state.extensions.length; i++) {
-        if (state.extensions[i].id === "Viewing.Extension.MyAwesomeExtension") {
-            found = true;
-        }
-    }
+    // let found = false;
+    // for (let i = 0; i < state.extensions.length; i++) {
+    //     if (state.extensions[i].id === "Viewing.Extension.MyAwesomeExtension") {
+    //         found = true;
+    //     }
+    // }
 
-    if (!found){
-    state.extensions.push({id: "Viewing.Extension.MyAwesomeExtension", name: "My Awesome Extension", enabled: false, options: {}})
+    // if (!found){
+    // state.extensions.push({id: "Viewing.Extension.MyAwesomeExtension", name: "My Awesome Extension", enabled: false, options: {}})
 
-    }
+    // }
+
+    // found = false;
+    // for (let i = 0; i < state.extensions.length; i++) {
+    //     if (state.extensions[i].id === "Viewing.Extension.WallAnalyzer") {
+    //         found = true;
+    //     }
+    // }
+
+    // if (!found){
+    // state.extensions.push({id: "Viewing.Extension.WallAnalyzer", name: "Wall Analyzer", enabled: false, options: {}})
+
+    // }
 
     // console.log(state.extensions)
 

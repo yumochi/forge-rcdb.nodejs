@@ -1,10 +1,10 @@
-.bar-chart .title {
+#my-awesome-extension-title{
   position: relative !important;
   overflow: visible;
   float: left;
 }
 
-.bar-chart .title > label{
+#my-awesome-extension-title-label{
   white-space: nowrap;
   font-weight: normal;
   user-select: none;
@@ -13,36 +13,36 @@
   width: 85px;
 }
 
-.bar-chart .title > .dropdown {
+#my-awesome-extension-dropdown {
   position: relative;
   top: -1px;
 }
 
-.bar-chart .title > button {
+#my-awesome-extension-title-button {
   margin-left: 4px;
   height: 26px;
 }
 
-.bar-chart .title > .dropdown > button {
+.my-awesome-extension .title > .dropdown > button {
   padding: 2px 12px;
   height: 26px;
 }
 
-.bar-chart .title .dropdown-menu {
+.my-awesome-extension .title .dropdown-menu {
   overflow: scroll;
 }
 
-.bar-chart .loader-background {
+.my-awesome-extension .loader-background {
   background: #fdfdfd;
 }
 
-.bar-chart .loader,
-.bar-chart .loader:before,
-.bar-chart .loader:after {
+.my-awesome-extension .loader,
+.my-awesome-extension .loader:before,
+.my-awesome-extension .loader:after {
   top: 35%;
 }
 
-.bar-chart .loader:before,
-.bar-chart .loader:after {
+.my-awesome-extension .loader:before,
+.my-awesome-extension .loader:after {
   margin: -9px auto;
 }

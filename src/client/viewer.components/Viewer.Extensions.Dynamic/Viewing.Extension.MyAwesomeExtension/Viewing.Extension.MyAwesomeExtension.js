@@ -1,3 +1,12 @@
+/**
+ * @fileoverview  MyAwesomeExtension.js - Working progress toward model divider extension for 
+ * auto4DBIM. There is still major work to do for this code. Much of the current codes comes
+ * Viewing.Extension.BarChart by Philippe Leefsma. This is will be mostly removed in the
+ * future to make way for model divider's proper code.
+ *
+ * @author yumochi2@illinois.edu (Yumo Chi)
+ */
+
 /////////////////////////////////////////////////////////
 // Viewing.Extension.BarChart
 // by Philippe Leefsma, March 2017
@@ -6,6 +15,7 @@
 import MultiModelExtensionBase from 'Viewer.MultiModelExtensionBase'
 import DropdownButton from 'react-bootstrap/lib/DropdownButton'
 import MenuItem from 'react-bootstrap/lib/MenuItem'
+import Form from 'react-bootstrap/lib/Form'
 import WidgetContainer from 'WidgetContainer'
 import {ReactLoader as Loader} from 'Loader'
 import './Viewing.Extension.MyAwesomeExtension.scss'
@@ -13,8 +23,8 @@ import transform from 'lodash/transform'
 import Toolkit from 'Viewer.Toolkit'
 import sortBy from 'lodash/sortBy'
 import BarChart from 'BarChart'
-import React from 'react'
 import d3 from 'd3'
+import React from 'react';
 
 class MyAwesomeExtension extends MultiModelExtensionBase {
 
@@ -35,6 +45,13 @@ class MyAwesomeExtension extends MultiModelExtensionBase {
     this.render = this.render.bind(this)
 
     this.react = options.react
+
+    /**
+    * binding saveSection, a file used to allow user to name model section. Not sure if 
+    * this is necessary, but following suit.
+    **/
+
+    this.saveSection = this.saveSection.bind(this)
   }
 
   /////////////////////////////////////////////////////////
@@ -67,7 +84,8 @@ class MyAwesomeExtension extends MultiModelExtensionBase {
       disabled: false,
       theming: false,
       items: [],
-      data: []
+      data: [],
+      sectionName: []
     }).then (() => {
 
       this.react.pushRenderExtension(this)
@@ -145,9 +163,9 @@ class MyAwesomeExtension extends MultiModelExtensionBase {
       await Toolkit.getPropertyList(
         this.viewer, this.componentIds, model)
 
-    $('#bar-chart-dropdown').parent().find('ul').css({
+    $('#my-awesome-extension-dropdown').parent().find('ul').css({
       height: Math.min(
-        $('.bar-chart').height() - 42,
+        $('.my-awesome-extension').height() - 42,
         chartProperties.length * 26 + 16)
     })
 
@@ -401,9 +419,9 @@ class MyAwesomeExtension extends MultiModelExtensionBase {
 
     const state = this.react.getState()
 
-    $('#bar-chart-dropdown').parent().find('ul').css({
+    $('#my-awesome-extension-dropdown').parent().find('ul').css({
       height: Math.min(
-        $('.bar-chart').height() - 42,
+        $('.my-awesome-extension').height() - 42,
         state.items.length * 26 + 16)
     })
 
@@ -411,6 +429,31 @@ class MyAwesomeExtension extends MultiModelExtensionBase {
       guid: this.guid()
     })
   }
+/////////////////////////////////////////////////////////
+//  functions added by Yumo Chi 
+//
+/////////////////////////////////////////////////////////
+
+//-------------------------------------------------------------------------
+/**
+ * Get section name from user and save to state
+ * @param {} event Event triggered by clicking on saving file button
+ */
+
+  saveSection(event){
+    console.log('working!')
+    console.log(event)
+
+  }
+  /////////////////////////////////////////////////////////
+  //
+  //
+  /////////////////////////////////////////////////////////
+
+  /////////////////////////////////////////////////////////
+  //
+  //
+  /////////////////////////////////////////////////////////
 
   /////////////////////////////////////////////////////////
   //
@@ -438,25 +481,26 @@ class MyAwesomeExtension extends MultiModelExtensionBase {
     }
 
     return (
-      <div className="title controls">
-        <label>
-          Bar Chart
+      <div className="title controls" id = "my-awesome-extension-title">
+        <label id = "my-awesome-extension-title-label">
+          Model Divider
         </label>
 
-        <DropdownButton
+        { /* <DropdownButton
           title={"Property: " + state.activeProperty }
           disabled={state.disabled}
-          key="bar-chart-dropdown"
-          id="bar-chart-dropdown">
+          key="my-awesome-extension-dropdown"
+          id="my-awesome-extension-dropdown">
          { menuItems }
         </DropdownButton>
 
         <button onClick={this.toggleTheming}
           disabled={state.disabled}
-          title="color theming">
+          title="color theming"
+          id= "my-awesome-extension-title-button">
           <span className="fa fa-paint-brush" style={themingClr}>
           </span>
-        </button>
+        </button> */ }
       </div>
     )
   }
@@ -470,30 +514,24 @@ class MyAwesomeExtension extends MultiModelExtensionBase {
     const state = this.react.getState()
 
     return (
-      <WidgetContainer renderTitle={this.renderTitle}
-        showTitle={opts.showTitle}
-        className={this.className}>
-
-        <Loader show={state.showLoader}/>
-
-        <BarChart onGroupClicked={(e) => {
-
-            const dbIds = e.dbIds
-
-            const model = this.viewer.activeModel ||
-              this.viewer.model
-
-            Toolkit.isolateFull(
-              this.viewer, dbIds,
-              model)
-
-            this.viewer.fitToView()
-          }}
-          guid={state.guid}
-          data={state.data}
+      <div>
+        <div>
+        <p>This is a simple tool for sectioning a model and saving the space for the project. 
+        Simply section the appropriate space and enter an unique name, then save the information.</p>
+        </div>
+        <div>
+        <input
+          id = "userSectionName"
+          type="text"
+          value="Enter desired name"
         />
-
-      </WidgetContainer>
+        <button
+          onClick={this.saveSection}
+          title="save file">
+          Save
+        </button>
+        </div>
+      </div>
     )
   }
 }

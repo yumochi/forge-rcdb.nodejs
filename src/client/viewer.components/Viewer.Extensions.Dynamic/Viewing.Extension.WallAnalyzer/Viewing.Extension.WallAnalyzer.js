@@ -1,7 +1,10 @@
 /////////////////////////////////////////////////////////
-// Viewing.Extension.WallAnalyzer
-// by Philippe Leefsma, May 2017
+// Viewing.Extension.WallAnalyzerModified
+// Author - Yumo Chi - yumochi2@illinois.edu
 //
+// built and modified based on work by Philippe Leefsma, May 2017
+//
+// The goal of this extension is to allow user to further granularized BIM models
 /////////////////////////////////////////////////////////
 import MultiModelExtensionBase from 'Viewer.MultiModelExtensionBase'
 import MeshPropertyPanel from './MeshPropertyPanel'
@@ -14,6 +17,11 @@ import { ReactLoader } from 'Loader'
 import Switch from 'Switch'
 import React from 'react'
 import d3 from 'd3'
+
+import Button from 'react-bootstrap/lib/Button';
+import FormControl from 'react-bootstrap/lib/FormControl';
+import DropdownButton from 'react-bootstrap/lib/DropdownButton';
+import MenuItem from 'react-bootstrap/lib/MenuItem';
 
 
 class WallAnalyzerExtension extends MultiModelExtensionBase {
@@ -32,6 +40,12 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     this.onWorkerMessage = this.onWorkerMessage.bind(this)
     this.onMouseMove = this.onMouseMove.bind(this)
     this.renderTitle = this.renderTitle.bind(this)
+
+    // add drop down button function
+    this.renderDropDown = this.renderDropDown.bind(this)
+    this.renderMenu = this.renderMenu.bind(this)
+
+
     this.onClick = this.onClick.bind(this)
 
     this.eventTool = new EventTool(this.viewer)
@@ -62,6 +76,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   /////////////////////////////////////////////////////////
   static get ExtensionId () {
 
+    console.log('inside')
     return 'Viewing.Extension.WallAnalyzer'
   }
 
@@ -74,7 +89,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     this.react.setState({
 
       loader: true,
-      levels: []
+      levels: [],
+      buttons: ['Level', 'Misc']
 
     }).then (() => {
 
@@ -133,7 +149,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     this.react.setState({
       loader: true,
-      levels: []
+      levels: [],
+      buttons: ['Level', 'Misc']
     })
   }
 
@@ -976,7 +993,15 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
         <ReactLoader show={state.loader}/>
 
         <div className="row">
+
+           <FormControl
+            type="text"
+            value="yo"
+            placeholder="Enter text"
+          />
+          <label>
           Select an item to isolate walls or floor on this level:
+          </label>
         </div>
 
         <div className="item-list-container">
@@ -1017,7 +1042,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     return (
       <div className="title">
         <label>
-          Wall Analyzer
+          Wall Analyzer Modified
         </label>
         {
           titleOpts.showDocking &&
@@ -1033,17 +1058,46 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
+  // Function added by Yumo to add dropdown buttons
+  //
+  /////////////////////////////////////////////////////////
+  renderMenu(level, i){
+    return(<MenuItem key={i} eventKey={i}>{level.name}</MenuItem>);
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to add dropdown buttons
+  //
+  /////////////////////////////////////////////////////////
+  renderDropDown(title, i){
+    const state = this.react.getState();
+
+    return (
+      <DropdownButton
+        bsStyle={'default'}
+        title={title}
+        key={i}
+        id={`dropdown-basic-${i}`}
+      >
+        {state.levels.map(this.renderMenu)}
+      </DropdownButton>
+  );
+  }
+
+
+
+  /////////////////////////////////////////////////////////
   //
   //
   /////////////////////////////////////////////////////////
   render (opts = {}) {
-
+    const state = this.react.getState()
     return (
       <WidgetContainer
         renderTitle={() => this.renderTitle(opts.docked)}
         showTitle={opts.showTitle}
         className={this.className}>
-
+        { state.buttons.map(this.renderDropDown)}
         { this.renderContent () }
 
       </WidgetContainer>
