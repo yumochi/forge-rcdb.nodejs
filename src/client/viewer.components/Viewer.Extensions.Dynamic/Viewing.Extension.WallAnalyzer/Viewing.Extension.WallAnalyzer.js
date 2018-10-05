@@ -23,6 +23,7 @@ import FormControl from 'react-bootstrap/lib/FormControl';
 import DropdownButton from 'react-bootstrap/lib/DropdownButton';
 import MenuItem from 'react-bootstrap/lib/MenuItem';
 
+import Snap from 'imports-loader?this=>window,fix=>module.exports=0!snapsvg/dist/snap.svg.js';
 
 class WallAnalyzerExtension extends MultiModelExtensionBase {
 
@@ -44,6 +45,11 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     // add drop down button function
     this.renderDropDown = this.renderDropDown.bind(this)
     this.renderMenu = this.renderMenu.bind(this)
+    this.renderButton = this.renderButton.bind(this)
+    this.initiateSVG = this.initiateSVG.bind(this)
+    this.onMouseClick = this.onMouseClick.bind(this)
+    this.makeid = this.makeid.bind(this)
+    this.drawPushpin = this.drawPushpin.bind(this)
 
 
     this.onClick = this.onClick.bind(this)
@@ -82,6 +88,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
   /////////////////////////////////////////////////////////
   // Load callback
+  // Modified by Yumo Chi (2018-10-04) to add buttons
   //
   /////////////////////////////////////////////////////////
   load () {
@@ -90,6 +97,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
       loader: true,
       levels: [],
+      // added buttons to 
       buttons: ['Level', 'Misc']
 
     }).then (() => {
@@ -994,11 +1002,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
         <div className="row">
 
-           <FormControl
-            type="text"
-            value="yo"
-            placeholder="Enter text"
-          />
           <label>
           Select an item to isolate walls or floor on this level:
           </label>
@@ -1065,6 +1068,139 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     return(<MenuItem key={i} eventKey={i}>{level.name}</MenuItem>);
   }
 
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to initiate the and prompt user to 
+  // insert svg on to the model by clicking
+  //
+  /////////////////////////////////////////////////////////
+  onMouseClick (event) {
+    console.log('onMouseClick called')
+    var screenPoint = {
+        x: event.clientX,
+        y: event.clientY
+    }; 
+
+    //get the selected 3D position of the object
+    var hitTest = this.viewer.impl.hitTest(screenPoint.x,screenPoint.y,true); 
+    if(hitTest)
+    {  
+       this.drawPushpin({x:hitTest.intersectPoint.x,
+                    y:hitTest.intersectPoint.y,
+                    z:hitTest.intersectPoint.z});
+    }
+  }
+ 
+  //generate a random id for each pushpin markup
+  makeid() {
+    console.log('makeid called')
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    
+    for( var i=0; i < 5; i++ )
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+    
+    return text;
+    }
+
+  drawPushpin(pushpinModelPt){  
+    console.log('drawPushpin called')
+    //convert 3D position to 2D screen coordination
+    var screenpoint = this.viewer.worldToClient(
+                      new THREE.Vector3(pushpinModelPt.x,
+                                        pushpinModelPt.y,
+                                        pushpinModelPt.z,));
+
+      //build the div container
+      var randomId = this.makeid();
+      var htmlMarker = '<div id="mymk' + randomId + '"></div>';
+      var parent = this.viewer.container
+      $(parent).append(htmlMarker);
+      $('#mymk'+randomId ).css({
+          'pointer-events': 'none',
+          'width': '20px',
+          'height': '20px',
+          'position': 'absolute',
+          'overflow': 'visible' 
+          });
+        
+      //build the svg element and draw a circle
+        $('#mymk'+randomId).append('<svg id="mysvg'+randomId+ '"></svg>')
+        var snap = Snap($('#mysvg'+randomId)[0]);
+        var rad = 12;
+        var circle = snap.paper.circle(14, 14, rad);
+        circle.attr({
+            fill: "#FF8888",
+            fillOpacity: 0.6,
+            stroke: "#FF0000",
+            strokeWidth: 3
+        }); 
+
+        //set the position of the SVG
+        //adjust to make the circle center is the position of the click point
+        var $container = $('#mymk'+randomId); 
+        $container.css({
+            'left': screenpoint.x - rad*2,
+            'top': screenpoint.y - rad
+        }); 
+        
+        //store 3D point data to the DOM
+        var div = $('#mymk'+randomId);
+        //add radius info with the 3D data
+        pushpinModelPt.radius = rad;
+        var storeData = JSON.stringify(pushpinModelPt);
+        div.data('3DData', storeData);
+  }
+
+  initiateSVG(){
+    console.log('initiateSVG called');
+    console.log(this.viewer)
+
+    this.viewer.container.addEventListener("click", this.onMouseClick)
+    //delegate the event of CAMERA_CHANGE_EVENT
+    this.viewer.addEventListener(Autodesk.Viewing.CAMERA_CHANGE_EVENT, function(rt){  
+
+      //find out all pushpin markups
+      var $eles = $("div[id^='mymk']"); 
+      console.log($eles)
+      var DOMeles = $eles.get();
+
+      for(var index in DOMeles){
+         
+        //get each DOM element
+        var DOMEle = DOMeles[index];
+        var divEle = $('#' + DOMEle.id);
+        //get out the 3D coordination
+         var val = divEle.data('3DData'); 
+         var pushpinModelPt = JSON.parse(val);
+         //get the updated screen point
+         var screenpoint = this.viewer.worldToClient(new THREE.Vector3(
+          pushpinModelPt.x,
+          pushpinModelPt.y,
+          pushpinModelPt.z,)); 
+          //update the SVG position.
+          divEle.css({
+              'left': screenpoint.x - pushpinModelPt.radius*2,
+              'top': screenpoint.y - pushpinModelPt.radius
+              }); 
+        } 
+    });  
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to involke function to add button
+  //
+  /////////////////////////////////////////////////////////
+  renderButton(){
+    return (
+      <Button 
+      bsStyle="primary"
+      onClick={this.initiateSVG}>
+        Set Boundry
+      </Button>
+  );
+  }
+
   /////////////////////////////////////////////////////////
   // Function added by Yumo to add dropdown buttons
   //
@@ -1097,7 +1233,12 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
         renderTitle={() => this.renderTitle(opts.docked)}
         showTitle={opts.showTitle}
         className={this.className}>
-        { state.buttons.map(this.renderDropDown)}
+        { 
+          // state.buttons.map(this.renderDropDown)
+        }
+        { 
+          this.renderButton()
+        }
         { this.renderContent () }
 
       </WidgetContainer>
