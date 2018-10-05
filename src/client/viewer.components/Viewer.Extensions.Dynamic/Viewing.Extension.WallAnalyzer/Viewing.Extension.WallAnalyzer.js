@@ -45,11 +45,13 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     // add drop down button function
     this.renderDropDown = this.renderDropDown.bind(this)
     this.renderMenu = this.renderMenu.bind(this)
-    this.renderButton = this.renderButton.bind(this)
+    this.renderAddOn = this.renderAddOn.bind(this)
     this.initiateSVG = this.initiateSVG.bind(this)
     this.onMouseClick = this.onMouseClick.bind(this)
     this.makeid = this.makeid.bind(this)
     this.drawPushpin = this.drawPushpin.bind(this)
+    // added function to save section box that user draws
+    this.saveSectionBox = this.saveSectionBox.bind(this)
 
 
     this.onClick = this.onClick.bind(this)
@@ -98,7 +100,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
       loader: true,
       levels: [],
       // added buttons to 
-      buttons: ['Level', 'Misc']
+      buttons: ['Misc'],
+      Misc: []
 
     }).then (() => {
 
@@ -158,7 +161,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     this.react.setState({
       loader: true,
       levels: [],
-      buttons: ['Level', 'Misc']
+      buttons: ['Misc'],
+      Misc: []
     })
   }
 
@@ -1064,8 +1068,22 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   // Function added by Yumo to add dropdown buttons
   //
   /////////////////////////////////////////////////////////
-  renderMenu(level, i){
-    return(<MenuItem key={i} eventKey={i}>{level.name}</MenuItem>);
+  saveSectionBox(){
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to add dropdown buttons
+  //
+  /////////////////////////////////////////////////////////
+  renderMenu(title, i){
+    return(
+      <MenuItem 
+      key={i} 
+      eventKey={i}
+      id = {`${title}-${i}`}
+      >
+        {title.name}
+      </MenuItem>);
   }
 
 
@@ -1191,13 +1209,26 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   // Function added by Yumo to involke function to add button
   //
   /////////////////////////////////////////////////////////
-  renderButton(){
+  renderAddOn(title, i){
+    const state = this.react.getState();
+
     return (
-      <Button 
-      bsStyle="primary"
-      onClick={this.initiateSVG}>
-        Set Boundry
-      </Button>
+      <div>
+        <DropdownButton
+          bsStyle={'default'}
+          title={title}
+          key={i}
+          id={`dropdown-basic-${i}`}
+        >
+          {state[title].map(this.renderMenu)}
+        </DropdownButton>
+
+        <Button 
+        bsStyle="primary"
+        onClick={this.saveSectionBox}>
+          Save
+        </Button>
+      </div>
   );
   }
 
@@ -1237,7 +1268,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
           // state.buttons.map(this.renderDropDown)
         }
         { 
-          this.renderButton()
+          state.buttons.map(this.renderAddOn)
         }
         { this.renderContent () }
 
