@@ -996,7 +996,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
            <FormControl
             type="text"
-            value="yo"
+            value="yohh"
             placeholder="Enter text"
           />
           <label>
