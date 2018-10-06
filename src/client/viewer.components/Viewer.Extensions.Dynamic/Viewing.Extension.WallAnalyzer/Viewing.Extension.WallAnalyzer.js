@@ -52,6 +52,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     this.drawPushpin = this.drawPushpin.bind(this)
     // added function to save section box that user draws
     this.saveSectionBox = this.saveSectionBox.bind(this)
+    this.loadSectionBox = this. loadSectionBox.bind(this)
 
 
     this.onClick = this.onClick.bind(this)
@@ -97,6 +98,9 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     this.react.setState({
 
+      savedbox: {},
+      boxkey: [],
+      boxIDCounter: 0,
       loader: true,
       levels: [],
       // added buttons to 
@@ -159,6 +163,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     this.notification = null
 
     this.react.setState({
+      savedbox: {},
+      boxIDCounter: 0,
       loader: true,
       levels: [],
       buttons: ['Misc'],
@@ -1066,10 +1072,61 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
-  // Function added by Yumo to add dropdown buttons
+  // Function added by Yumo to load sectionbox buttons
+  //
+  /////////////////////////////////////////////////////////
+  loadSectionBox(title){
+    //Get the state
+    const state = this.react.getState()
+    // Get the savedbox
+    let currSavedbox = state.savedbox
+    let cutPlanes = currSavedbox[title]
+    // Set planes from savedbox
+    NOP_VIEWER.setCutPlanes(cutPlanes)
+
+    
+
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to add Save section buttons
   //
   /////////////////////////////////////////////////////////
   saveSectionBox(){
+    // Declare the keys of the selection box
+    const Keys = ['a', 'b', 'c', 'd']
+    const state = this.react.getState()
+    // Get the ID
+    let i = state.boxIDCounter
+
+    // get previous misc items
+    // subject to change
+    let newMisc = state.Misc
+    // get box key of curr section box
+    let newBoxKey = Keys[i % Keys.length]
+    // update previous box key to include new key
+    newMisc.push(newBoxKey)
+    // increment i
+    i += 1
+    // get planes from section box
+    const boxPlanes = NOP_VIEWER.getCutPlanes()
+    // Define the saved box
+    let newSavedBox = state.savedbox
+    
+
+    newSavedBox[newBoxKey] = boxPlanes
+
+    // Set state to include sectionbox info
+    this.react.setState({
+
+      savedbox: newSavedBox,
+      Misc: newMisc,
+      boxIDCounter: i,
+    })
+
+    
+
+
   }
 
   /////////////////////////////////////////////////////////
@@ -1082,8 +1139,9 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
       key={i} 
       eventKey={i}
       id = {`${title}-${i}`}
+      onClick = {()=>this.loadSectionBox(title)}
       >
-        {title.name}
+        {title}
       </MenuItem>);
   }
 
@@ -1213,6 +1271,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   renderAddOn(title, i){
     const state = this.react.getState();
 
+
     return (
       <div>
         <DropdownButton
@@ -1221,7 +1280,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
           key={i}
           id={`dropdown-basic-${i}`}
         >
-          {state[title].map(this.renderMenu)}
+          {state.Misc.map(this.renderMenu)}
+
         </DropdownButton>
 
         <Button 
