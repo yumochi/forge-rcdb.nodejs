@@ -45,14 +45,11 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     // add drop down button function
     this.renderDropDown = this.renderDropDown.bind(this)
     this.renderMenu = this.renderMenu.bind(this)
-    this.renderAddOn = this.renderAddOn.bind(this)
+    this.renderButton = this.renderButton.bind(this)
     this.initiateSVG = this.initiateSVG.bind(this)
     this.onMouseClick = this.onMouseClick.bind(this)
     this.makeid = this.makeid.bind(this)
     this.drawPushpin = this.drawPushpin.bind(this)
-    // added function to save section box that user draws
-    this.saveSectionBox = this.saveSectionBox.bind(this)
-    this.loadSectionBox = this. loadSectionBox.bind(this)
 
 
     this.onClick = this.onClick.bind(this)
@@ -98,14 +95,10 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     this.react.setState({
 
-      savedbox: {},
-      boxkey: [],
-      boxIDCounter: 0,
       loader: true,
       levels: [],
       // added buttons to 
-      buttons: ['Misc'],
-      Misc: []
+      buttons: ['Level', 'Misc']
 
     }).then (() => {
 
@@ -163,12 +156,9 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     this.notification = null
 
     this.react.setState({
-      savedbox: {},
-      boxIDCounter: 0,
       loader: true,
       levels: [],
-      buttons: ['Misc'],
-      Misc: []
+      buttons: ['Level', 'Misc']
     })
   }
 
@@ -1012,7 +1002,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
         <div className="row">
 
-
           <label>
           Select an item to isolate walls or floor on this level:
           </label>
@@ -1072,76 +1061,11 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
-  // Function added by Yumo to load sectionbox buttons
-  //
-  /////////////////////////////////////////////////////////
-  loadSectionBox(title){
-    //Get the state
-    const state = this.react.getState()
-    // Get the savedbox
-    let currSavedbox = state.savedbox
-    let cutPlanes = currSavedbox[title]
-    // Set planes from savedbox
-    NOP_VIEWER.setCutPlanes(cutPlanes)
-
-    
-
-  }
-
-  /////////////////////////////////////////////////////////
-  // Function added by Yumo to add Save section buttons
-  //
-  /////////////////////////////////////////////////////////
-  saveSectionBox(){
-
-    // Declare the keys of the selection box
-    const Keys = ['a', 'b', 'c', 'd']
-    const state = this.react.getState()
-    // Get the ID
-    let i = state.boxIDCounter
-
-    // get previous misc items
-    // subject to change
-    let newMisc = state.Misc
-    // get box key of curr section box
-    let newBoxKey = Keys[i % Keys.length]
-    // update previous box key to include new key
-    newMisc.push(newBoxKey)
-    // increment i
-    i += 1
-    // get planes from section box
-    const boxPlanes = NOP_VIEWER.getCutPlanes()
-    // Define the saved box
-    let newSavedBox = state.savedbox
-    
-
-    newSavedBox[newBoxKey] = boxPlanes
-
-    // Set state to include sectionbox info
-    this.react.setState({
-
-      savedbox: newSavedBox,
-      Misc: newMisc,
-      boxIDCounter: i,
-    })
-
-    
-  }
-
-  /////////////////////////////////////////////////////////
   // Function added by Yumo to add dropdown buttons
   //
   /////////////////////////////////////////////////////////
-  renderMenu(title, i){
-    return(
-      <MenuItem 
-      key={i} 
-      eventKey={i}
-      id = {`${title}-${i}`}
-      onClick = {()=>this.loadSectionBox(title)}
-      >
-        {title}
-      </MenuItem>);
+  renderMenu(level, i){
+    return(<MenuItem key={i} eventKey={i}>{level.name}</MenuItem>);
   }
 
 
@@ -1230,6 +1154,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
   initiateSVG(){
     console.log('initiateSVG called');
+    console.log(this.viewer)
 
     this.viewer.container.addEventListener("click", this.onMouseClick)
     //delegate the event of CAMERA_CHANGE_EVENT
@@ -1266,28 +1191,13 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   // Function added by Yumo to involke function to add button
   //
   /////////////////////////////////////////////////////////
-  renderAddOn(title, i){
-    const state = this.react.getState();
-
-
+  renderButton(){
     return (
-      <div>
-        <DropdownButton
-          bsStyle={'default'}
-          title={title}
-          key={i}
-          id={`dropdown-basic-${i}`}
-        >
-          {state.Misc.map(this.renderMenu)}
-
-        </DropdownButton>
-
-        <Button 
-        bsStyle="primary"
-        onClick={this.saveSectionBox}>
-          Save
-        </Button>
-      </div>
+      <Button 
+      bsStyle="primary"
+      onClick={this.initiateSVG}>
+        Set Boundry
+      </Button>
   );
   }
 
@@ -1327,7 +1237,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
           // state.buttons.map(this.renderDropDown)
         }
         { 
-          state.buttons.map(this.renderAddOn)
+          this.renderButton()
         }
         { this.renderContent () }
 
