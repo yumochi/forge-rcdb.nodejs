@@ -1069,6 +1069,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   //
   /////////////////////////////////////////////////////////
   saveSectionBox(){
+    console.log('accessing')
+    console.log(NOP_VIEWER.getCutPlanes())
   }
 
   /////////////////////////////////////////////////////////
@@ -1172,7 +1174,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
   initiateSVG(){
     console.log('initiateSVG called');
-    console.log(this.viewer)
 
     this.viewer.container.addEventListener("click", this.onMouseClick)
     //delegate the event of CAMERA_CHANGE_EVENT
