@@ -153,14 +153,20 @@ class DualViewerExtension extends MultiModelExtensionBase {
 
       this.dualViewer.start()
 
+      console.log('DualViewer this.dualViewer', this.dualViewer )
+
       const model =
         this.viewer.activeModel ||
         this.viewer.model ||
         this.options.dbModel.model
 
+      console.log('DualViewer model', model )  
+
       const urn =
         this.options.urn ||
         model.urn
+
+      console.log('DualViewer urn', urn )
 
       this.viewerDocument =
         this.options.viewerDocument ||
@@ -168,6 +174,8 @@ class DualViewerExtension extends MultiModelExtensionBase {
 
       const items = Toolkit.getViewableItems(
         this.viewerDocument, '2d')
+
+      console.log('items', items)
 
       if (items.length) {
 
@@ -369,6 +377,8 @@ class DualViewerExtension extends MultiModelExtensionBase {
 
     const state = this.react.getState()
 
+    // console.log(new Autodesk.Viewing.Extensions.Measure.MeasurementsManager(this.dualViewer).measurementsList)
+
     return (
       <WidgetContainer renderTitle={this.renderTitle}
         showTitle={opts.showTitle}
@@ -390,6 +400,8 @@ class DualViewerExtension extends MultiModelExtensionBase {
 
       </WidgetContainer>
     )
+
+
   }
 }
 

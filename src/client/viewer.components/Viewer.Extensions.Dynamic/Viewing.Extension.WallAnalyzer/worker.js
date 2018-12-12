@@ -10,6 +10,29 @@ const THREE = THREELib()
 THREE.EdgesGeometry = EdgesGeometry
 
 /////////////////////////////////////////////////////////
+// Yumo Notes - Creating mesh for bounding box
+//
+/////////////////////////////////////////////////////////
+function createSectionBoundingMesh (bbox) {
+
+  const geometry = new THREE.BoxGeometry(
+    bbox.max.x - bbox.min.x,
+    bbox.max.y - bbox.min.y,
+    bbox.max.z - bbox.min.z)
+
+  const mesh = new THREE.Mesh(geometry)
+
+  const transform = new THREE.Matrix4()
+
+  transform.makeTranslation((bbox.max.x + bbox.min.x) * 0.5, (bbox.max.y + bbox.min.y) * 0.5,
+    (bbox.max.z + bbox.min.z) * 0.5)
+
+  mesh.applyMatrix(transform)
+
+  return mesh
+}
+
+/////////////////////////////////////////////////////////
 // Function added by Yumo to pass in bounding box for the 
 // secctions that the user created
 /////////////////////////////////////////////////////////
@@ -685,7 +708,7 @@ async function workerMain () {
     // create mesh for uesr drawn sections
   for (let box in boxes){
       const sectionBox = boxes[box].bBox 
-      const sectionBoxMesh = createBoundingMesh(sectionBox)
+      const sectionBoxMesh = createSectionBoundingMesh(sectionBox)
       const sectionBSP = new ThreeBSP(sectionBoxMesh)
     // interate through floor mesh to see bsp intersect
     floorMeshes.forEach((floorMesh) => {

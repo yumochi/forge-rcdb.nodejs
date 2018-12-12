@@ -56,8 +56,9 @@ const config = {
       accessTokenUri: '/authentication/v1/gettoken',
 
       baseUri: 'https://developer.api.autodesk.com',
-      clientSecret: 'nc4U35G6ECP17N47',
+      clientSecret: 'T60847ccff23f402',
       clientId: 'GI2zbvtCGJJMdPljNcvjbADdNj53S4GQ',
+
 
       scope: [
         'data:read',
