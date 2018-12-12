@@ -1826,11 +1826,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
             >
             {state.boxKeys.map(this.renderMenu)}
             </DropdownButton>
-            <Button 
-            bsStyle="primary"
-            onClick = {this.extractBoundingBox}>
-              Extract Section
-            </Button>
         </div>
         <div>
           <div>
@@ -1967,13 +1962,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
           bsStyle="primary"
           onClick = {this.trial}>
             Test
-          </Button>
-        </div>
-        <div>
-          <Button 
-          bsStyle="primary"
-          onClick = {()=>this.onSectionFloorClicked('level 1 a')}>
-            Render Section Level 1 a
           </Button>
         </div>
       </div>

@@ -36,6 +36,26 @@ function createSectionBoundingMesh (bbox) {
 // Function added by Yumo to pass in bounding box for the 
 // secctions that the user created
 /////////////////////////////////////////////////////////
+function postSectionWallMesh(mesh, opts){
+    const geometry = mesh.geometry
+
+  const msg = Object.assign({}, {
+    matrixWorld: mesh.matrix.elements,
+    vertices: geometry.vertices,
+    sectionName: mesh.sectionName,
+    pathEdges: mesh.pathEdges,
+    msgId: 'MSG_ID_SECTION_WALL_MESH',
+    faces: geometry.faces,
+    dbId: mesh.dbId
+  }, opts)
+
+  self.postMessage(msg)
+}
+
+/////////////////////////////////////////////////////////
+// Function added by Yumo to pass in bounding box for the 
+// secctions that the user created
+/////////////////////////////////////////////////////////
 function postSectionFloorMesh(mesh, opts){
     const geometry = mesh.geometry
 
@@ -51,7 +71,6 @@ function postSectionFloorMesh(mesh, opts){
 
   self.postMessage(msg)
 }
-
 
 /////////////////////////////////////////////////////////
 // Function added by Yumo to pass in bounding box for the 
@@ -710,9 +729,10 @@ async function workerMain () {
       const sectionBox = boxes[box].bBox 
       const sectionBoxMesh = createSectionBoundingMesh(sectionBox)
       const sectionBSP = new ThreeBSP(sectionBoxMesh)
-    // interate through floor mesh to see bsp intersect
-    floorMeshes.forEach((floorMesh) => {
-      // check where the level and the wall clash and save the result
+
+      // interate through floor mesh to see bsp intersect
+      floorMeshes.forEach((floorMesh) => {
+      // check where the section and the floor intersect and save the result
       const resultBSP = sectionBSP.intersect(floorMesh.bsp)
 
       // save the intersecting mesh of the two bounding box
@@ -750,12 +770,61 @@ async function workerMain () {
       // post info for the wall
       postSectionFloorMesh (mesh, {
         sectionCount: Object.keys(boxes).length,
-        floorCount: wallMeshes.length,
+        floorCount: floorMeshes.length,
         section: box,
         sectionBox
       })
 
     })
+
+    // iterate though wall meshes
+    wallMeshes.forEach((wallMesh) => {
+    // check where the section and the wall clash and save the result
+      const resultBSP = sectionBSP.intersect(wallMesh.bsp)
+
+      // save the intersecting mesh of the two bounding box
+      const mesh = resultBSP.toMesh()
+
+      // get the part edges
+      const edges = getHardEdges(mesh)
+
+      /////////////////////////////////////////////////////////
+      // Yumo Notes - changing edges for the mesh, filtering out edges that 
+      // are not in the level box
+      /////////////////////////////////////////////////////////
+      const filteredEdges = edges.filter((edge) => {
+
+        return (
+          (edge.start.z < sectionBox.min.z + 0.1) &&
+          (edge.end.z   < sectionBox.min.z + 0.1)
+        )
+      })
+
+            // save a floor id for the mesh
+      mesh.sectionName = box
+
+      /////////////////////////////////////////////////////////
+      // Yumo Notes - changing edges for the mesh with filtering 
+      // edges, notes that the mesh here is still meta data
+      /////////////////////////////////////////////////////////
+
+      // set the path edge for the mesh  
+      mesh.pathEdges = filteredEdges
+
+      // save dbId for the mesh
+      mesh.dbId = wallMesh.dbId
+
+      // post info for the wall
+      postSectionWallMesh (mesh, {
+        sectionCount: Object.keys(boxes).length,
+        wallCount: wallMeshes.length,
+        section: box,
+        sectionBox
+      })
+
+    })    
+
+
   }
 
   self.close()
