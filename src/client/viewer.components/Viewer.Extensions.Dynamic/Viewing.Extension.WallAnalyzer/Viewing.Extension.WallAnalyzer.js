@@ -23,7 +23,7 @@ import FormControl from 'react-bootstrap/lib/FormControl';
 import DropdownButton from 'react-bootstrap/lib/DropdownButton';
 import MenuItem from 'react-bootstrap/lib/MenuItem';
 
-import Snap from 'imports-loader?this=>window,fix=>module.exports=0!snapsvg/dist/snap.svg.js';
+import ThreeBSP from './threeCSG';
 
 class WallAnalyzerExtension extends MultiModelExtensionBase {
 
@@ -42,24 +42,57 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     this.onMouseMove = this.onMouseMove.bind(this)
     this.renderTitle = this.renderTitle.bind(this)
 
+    // function added to find all dbID
+    this.getAlldbIds = this.getAlldbIds.bind(this)
+
+    // function added to control message from worker
+    this.onWorkerMessageWrapper = this.onWorkerMessageWrapper.bind(this)
+    this.onWorkerMessageProcessSection = this.onWorkerMessageProcessSection.bind(this)
+
+    // function added to render meshes for section
+    this.onSectionFloorClicked = this.onSectionFloorClicked.bind(this)
+
+    // function added for paper
+    // add preprocessing function to deal with user drawn sections 
+    this.postBoundingBoxesInfo = this.postBoundingBoxesInfo.bind(this)
+    this.retrieveSections = this.retrieveSections.bind(this)
+    this.extractBoundingBox = this.extractBoundingBox.bind(this)
+    this.findElementBoundingBox = this.findElementBoundingBox.bind(this)
+
+    // function added to help test if a building element is 
+    // inside a bounding box
+    this.findSections = this.findSections.bind(this)
+    this._getBBOX = this._getBBOX.bind(this)
+
     // add drop down button function
     this.renderDropDown = this.renderDropDown.bind(this)
     this.renderMenu = this.renderMenu.bind(this)
+    this.renderMeshMenu = this.renderMeshMenu.bind(this)
     this.renderAddOn = this.renderAddOn.bind(this)
-    this.initiateSVG = this.initiateSVG.bind(this)
-    this.onMouseClick = this.onMouseClick.bind(this)
-    this.makeid = this.makeid.bind(this)
-    this.drawPushpin = this.drawPushpin.bind(this)
-    // added function to save section box that user draws
+
+    // add functions to allow 2D model sectioning
+    this.render2DInterface = this.render2DInterface.bind(this)
+    this.extractModelWidth = this.extractModelWidth.bind(this)
+    this.extractModelHeight = this.extractModelHeight.bind(this)
+    this.extract2DAreas = this.extract2DAreas.bind(this)
+
+    // added functions to save section box that user draws
     this.saveSectionBox = this.saveSectionBox.bind(this)
-    this.loadSectionBox = this. loadSectionBox.bind(this)
+    this.loadSectionBox = this.loadSectionBox.bind(this)
+
+    // create trial function to create mesh for a selected item
+    this.trial = this.trial.bind(this)
 
 
-    this.onClick = this.onClick.bind(this)
-
+    // function to allow more complex event handeling
     this.eventTool = new EventTool(this.viewer)
 
     this.react = this.options.react
+
+    /////////////////////////////////////////////////////////
+    // Yumo Notes - creates a worker to process mesh meta info
+    // in the background
+    /////////////////////////////////////////////////////////
 
     this.worker = new Worker()
 
@@ -85,7 +118,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   /////////////////////////////////////////////////////////
   static get ExtensionId () {
 
-    console.log('inside')
     return 'Viewing.Extension.WallAnalyzer'
   }
 
@@ -98,11 +130,53 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     this.react.setState({
 
-      savedbox: {},
-      boxkey: [],
+      sectionBox:{},
+      bBoxes: [],
+      boxKeys: [],
+      zones: {
+                  a:[
+                  [ 0.9999999999999998, 0, 0, -117.3212966918945],
+                  [ 0, 0.9999999999999998, 0, -51.32601165771483],
+                  [ 0, 0, 1, -31.037012100219727],
+                  [ -0.9999999999999998, 0, 0, -106.79097747802732],
+                  [ 0, -0.9999999999999998, 0, -51.65189743041991],
+                  [ 0, 0, -1, -24.38190269470215]
+                  ],
+                  b:[
+                  [ 0.9999999999999998, 0, 0, -117.3212966918945],
+                  [ 0, 0.9999999999999998, 0, -88.17474365234374],
+                  [ 0, 0, 1, -31.037012100219727],
+                  [ -0.9999999999999998, 0, 0, -106.79097747802732],
+                  [ 0, -0.9999999999999998, 0, 51.90516281127928],
+                  [ 0, 0, -1, -24.38190269470215]
+                  ],
+                  c:[
+                  [ 0.9999999999999998, 0, 0, -104.36467742919919],
+                  [ 0, 0.9999999999999998, 0, 50.93488693237303],
+                  [ 0, 0, 1, -31.037012100219727],
+                  [ -0.9999999999999998, 0, 0, -106.79097747802732],
+                  [ 0, -0.9999999999999998, 0, -88.73913574218749],
+                  [ 0, 0, -1, -24.38190269470215]
+                  ]
+                },
+      heights:{
+        "level 1" : [
+          [0,0,1,-5.512819290161133],
+          [0,0,-1,-8.394502639770508]
+        ],
+        "level 2" : [
+          [0,0,1,-18.400054931640625],
+          [0,0,-1,4.429952621459961]
+        ],
+        "level 3" : [
+          [0,0,1,-31.72292709350586],
+          [0,0,-1,17.10234832763672]
+        ]
+      },
       boxIDCounter: 0,
       loader: true,
       levels: [],
+      sections: [],
       // added buttons to 
       buttons: ['Misc'],
       Misc: []
@@ -114,18 +188,29 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     console.log('Viewing.Extension.WallAnalyzer loaded')
 
-    this.eventTool.on ('mousemove', this.onMouseMove)
 
-    this.eventTool.on ('singleclick', this.onClick)
-
+    // creating linesMaterial 
     this.linesMaterial = this.createLinesMaterial()
 
+    // render this as overlay to the viewer
     this.viewer.impl.createOverlayScene (
       'wallAnalyzer', this.linesMaterial)
 
+    /////////////////////////////////////////////////////////
+    // Yumo Notes - add event listener for the worker to 
+    // interact with
+    /////////////////////////////////////////////////////////
     this.worker.addEventListener(
       'message',
-      this.onWorkerMessage)
+      this.onWorkerMessageWrapper)
+
+    // sending bounding box info to worker
+    const state = this.react.getState()
+    const zones = state.zones
+
+    this.postBoundingBoxesInfo('BoundingBox', 3)
+
+    // create section based on user preference
 
     return true
   }
@@ -163,31 +248,80 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     this.notification = null
 
     this.react.setState({
-      savedbox: {},
+      sectionBox: {},
+      bBoxes: [],
+      boxKeys: [],
+      zones: {
+                  a:[
+                  [ 0.9999999999999998, 0, 0, -117.3212966918945],
+                  [ 0, 0.9999999999999998, 0, -51.32601165771483],
+                  [ 0, 0, 1, -31.037012100219727],
+                  [ -0.9999999999999998, 0, 0, -106.79097747802732],
+                  [ 0, -0.9999999999999998, 0, -51.65189743041991],
+                  [ 0, 0, -1, -24.38190269470215]
+                  ],
+                  b:[
+                  [ 0.9999999999999998, 0, 0, -117.3212966918945],
+                  [ 0, 0.9999999999999998, 0, -88.17474365234374],
+                  [ 0, 0, 1, -31.037012100219727],
+                  [ -0.9999999999999998, 0, 0, -106.79097747802732],
+                  [ 0, -0.9999999999999998, 0, 51.90516281127928],
+                  [ 0, 0, -1, -24.38190269470215]
+                  ],
+                  c:[
+                  [ 0.9999999999999998, 0, 0, -104.36467742919919],
+                  [ 0, 0.9999999999999998, 0, 50.93488693237303],
+                  [ 0, 0, 1, -31.037012100219727],
+                  [ -0.9999999999999998, 0, 0, -106.79097747802732],
+                  [ 0, -0.9999999999999998, 0, -88.73913574218749],
+                  [ 0, 0, -1, -24.38190269470215]
+                  ]
+                },
+      heights:{
+        "level 1" : [
+          [0,0,1,-5.512819290161133],
+          [0,0,-1,-8.394502639770508]
+        ],
+        "level 2" : [
+          [0,0,1,-18.400054931640625],
+          [0,0,-1,4.429952621459961]
+        ],
+        "level 3" : [
+          [0,0,1,-31.72292709350586],
+          [0,0,-1,17.10234832763672]
+        ]
+      },
       boxIDCounter: 0,
       loader: true,
       levels: [],
+      sections: [],
       buttons: ['Misc'],
       Misc: []
     })
+
   }
 
   /////////////////////////////////////////////////////////
-  //
+  // Yumo Notes - function to interact with message from 
+  // workers, seem to be made for a specifc level
   //
   /////////////////////////////////////////////////////////
   onWorkerMessage (msg) {
 
+
     const state = this.react.getState()
 
-    const data = msg.data
+    const data = msg.data    
 
     const material = this.levelMaterials[data.level]
 
+    // build mesh from the meta data 
     const mesh = this.buildMesh(data, material)
 
+    // set levelIdx 
     const levelIdx = data.levelCount - data.level - 1
 
+    // set the level info in the state or create them
     const level = state.levels[levelIdx] || {
         strokeColor: this.levelColors[data.level],
         fillColor: this.levelColors[data.level],
@@ -215,10 +349,15 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
         }
     }
 
+    // retrieve specific level
     state.levels[levelIdx] = level
 
+    // push new mesh into the level
     level.walls.meshes.push(mesh)
 
+    // The map() method creates a new array with the results 
+    // of calling a function for every array element.
+    // create paths for the floor of the level
     const lines = data.pathEdges.map((edge) => {
 
       const geometry = new THREE.Geometry()
@@ -285,7 +424,9 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
-  //
+  // original function that returns the bounding box of model component
+  // param: 
+  //       dbId - dbId of the model component to retrieve bounding box for
   //
   /////////////////////////////////////////////////////////
   getComponentBoundingBox (dbId) {
@@ -331,7 +472,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
-  //
+  // Yumo Notes's - Once model loads, we most model info. Get the 
+  // floor and wall component with getComponentsByParentName
   //
   /////////////////////////////////////////////////////////
   onModelCompletedLoad (event) {
@@ -340,11 +482,15 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     this.postModelInfo ()
 
+    // get all the components with Floors in their name
     this.getComponentsByParentName(
       'Floors', model).then((floorsIds) => {
 
+        // record the number of floors in the model
         const nbFloors = floorsIds.length
 
+        // add a different color and material for each floor for 
+        // rendering mesh later
         const colors = d3.scale.linear()
           .domain([0, nbFloors * .33, nbFloors * .66, nbFloors])
           .range(['#FCB843', '#C2149F', '#0CC4BD', '#0270E9'])
@@ -386,10 +532,63 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     this.react.setState({
       loader: false
     })
+
+
+    this.findElementBoundingBox()
+
+  }
+
+
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to control communication between 
+  // worker and wall analyzer. The communication pattern
+  // between wall analyzer and worker is meant to return mesh
+  // for walls, now workers will process bounding box for 
+  // for wall analyzer 
+  /////////////////////////////////////////////////////////
+  onWorkerMessageWrapper(msg){
+
+    const data = msg.data    
+    if (data.msgId === 'MSG_ID_SECTIONBOUNDINGBOX'){
+      this.retrieveSections(data)
+    }
+
+    else if (data.msgId === 'MSG_ID_SECTION_FLOOR_MESH'){
+      this.onWorkerMessageProcessSection(msg)
+    }
+
+    else{
+      this.onWorkerMessage(msg)
+
+    }
   }
 
   /////////////////////////////////////////////////////////
-  //
+  // Function added by Yumo to post bounding box based on 
+  // user defined values to worker
+  /////////////////////////////////////////////////////////
+  postBoundingBoxesInfo(category, count){
+
+    const state = this.react.getState()
+
+    const zones = state.zones
+
+    const msg = {
+      boundingBox: zones,
+      msgId: 'MSG_ID_BOUNDINGBOX',
+      category,
+      count,
+    }
+
+    // send this information to the worker
+    this.worker.postMessage(msg)
+
+  }
+
+
+  /////////////////////////////////////////////////////////
+  // Yumo's Notes - send message for worker to process model
   //
   /////////////////////////////////////////////////////////
   async postModelInfo () {
@@ -418,7 +617,9 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
-  //
+  // Yumo Notes - Functions to send message to worker to process
+  // mesh for different components, 
+  // Param - catergory - category for building element, either floor or wall in this case
   //
   /////////////////////////////////////////////////////////
   postComponent (dbId, category, count) {
@@ -435,6 +636,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
       dbId
     }
 
+    // save all metadata for all fragments for the element
     geometry.meshes.forEach((mesh, idx) => {
 
       msg['positions' + idx] = mesh.positions
@@ -442,12 +644,14 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
       msg['stride' + idx] = mesh.stride
     })
 
+    // send this information to the worker
     this.worker.postMessage(msg)
   }
 
   /////////////////////////////////////////////////////////
-  //
-  //
+  // Yumo Notes - function to build mesh for data with material
+  // specified. Data specified vertices and faces for the meshes
+  // 
   /////////////////////////////////////////////////////////
   buildMesh (data, material) {
 
@@ -475,6 +679,9 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     //geometry.computeVertexNormals()
 
+    // Notes: after here, it just seem like regular code to create meshes
+    // the key is in the calculation for the vertices and faces
+
     const matrixWorld = new THREE.Matrix4()
 
     matrixWorld.fromArray(data.matrixWorld)
@@ -490,8 +697,9 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
-  //
-  //
+  // Yumo Notes - Function to get floor and wall components 
+  // based on name, bascially instancetree keep tarck of all 
+  // the name of the dbId
   /////////////////////////////////////////////////////////
   getComponentsByParentName (name, model) {
 
@@ -518,8 +726,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
-  //
-  //
+  // Yumo Notes - Function to get component geometry in term of 
+  // dbId 
   /////////////////////////////////////////////////////////
   getComponentGeometry (dbId) {
 
@@ -530,22 +738,30 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     const meshes = fragIds.map((fragId) => {
 
+      // retrieve relevant information from viewer based on model and fragment id
+      // return a variety of meta information on mesh
       const renderProxy = this.viewer.impl.getRenderProxy(
         this.viewer.model,
         fragId)
 
+      // get geometry from renderProxy
       const geometry = renderProxy.geometry
 
-      const attributes = geometry.attributes
+      // rendering details, such as index, normal, uv, and position
+      const attributes = geometry.attributes 
 
+      // either assign vb array of the geometry returned or the attributess
       const positions = geometry.vb
         ? geometry.vb
         : attributes.position.array
 
+      // get indices for the attributes
       const indices = attributes.index.array || geometry.ib
 
+      // get stride of the fragments
       const stride = geometry.vb ? geometry.vbstride : 3
 
+      // capture relevant matrixWorld
       matrixWorld = matrixWorld ||
         renderProxy.matrixWorld.elements
 
@@ -563,7 +779,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
-  //
+  // Yumo Notes - creates mesh material for drawing wireframe-style geometries
   //
   /////////////////////////////////////////////////////////
   createLinesMaterial (color = 0xFF0000, opacity = 1.0) {
@@ -621,51 +837,11 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     throw new Error('Bad Hex Number: ' + hex)
   }
 
-  /////////////////////////////////////////////////////////
-  // Creates Raycaster object from the pointer
-  //
-  /////////////////////////////////////////////////////////
-  pointerToRaycaster (domElement, camera, pointer) {
 
-    const pointerVector = new THREE.Vector3()
-    const pointerDir = new THREE.Vector3()
-    const ray = new THREE.Raycaster()
-
-    const rect = domElement.getBoundingClientRect()
-
-    const x = ((pointer.clientX - rect.left) / rect.width) * 2 - 1
-    const y = -((pointer.clientY - rect.top) / rect.height) * 2 + 1
-
-    if (camera.isPerspective) {
-
-      pointerVector.set(x, y, 0.5)
-
-      pointerVector.unproject(camera)
-
-      ray.set(camera.position,
-        pointerVector.sub(
-          camera.position).normalize())
-
-    } else {
-
-      pointerVector.set(x, y, -1)
-
-      pointerVector.unproject(camera)
-
-      pointerDir.set(0, 0, -1)
-
-      ray.set(pointerVector,
-        pointerDir.transformDirection(
-          camera.matrixWorld))
-    }
-
-    return ray
-  }
-
-  /////////////////////////////////////////////////////////
-  //
-  //
-  /////////////////////////////////////////////////////////
+  // /////////////////////////////////////////////////////////
+  // //
+  // //
+  // /////////////////////////////////////////////////////////
   onMouseMove (event) {
 
     const pointer = event.pointers
@@ -680,7 +856,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     const intersectResults = rayCaster.intersectObjects(
       this.intersectMeshes, true)
 
-    //console.log(intersectResults)
   }
 
   /////////////////////////////////////////////////////////
@@ -692,36 +867,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     if (event.selections.length) {
 
       const dbId = event.selections[0].dbIdArray[0]
-    }
-  }
-
-  /////////////////////////////////////////////////////////
-  //
-  //
-  /////////////////////////////////////////////////////////
-  onClick (event) {
-
-    const pointer = event.pointers
-      ? event.pointers[0]
-      : event
-
-    const rayCaster = this.pointerToRaycaster(
-      this.viewer.impl.canvas,
-      this.viewer.impl.camera,
-      pointer)
-
-    const intersectResults = rayCaster.intersectObjects(
-      this.intersectMeshes, true)
-
-    if (intersectResults.length) {
-
-      const mesh = intersectResults[0].object
-
-      this.panel.setVisible(false)
-
-      this.panel.setNodeProperties(mesh.dbId)
-
-      this.panel.setVisible(true)
     }
   }
 
@@ -1072,19 +1217,518 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   }
 
   /////////////////////////////////////////////////////////
+  // Function added by Yumo to process floor and wall meshes 
+  // based on sections, the current function is modeled after
+  // the mesh process for wall by level
+  /////////////////////////////////////////////////////////
+
+  onWorkerMessageProcessSection(msg) {
+
+
+    const state = this.react.getState()
+
+    const data = msg.data    
+
+    // here the wall are originall asscoiated with the level
+    // it is in, however, section do not have material associated
+    // with it. I will use a hacky solution right now
+    const sectionLevel = parseInt(data.section.split(' ')[1]) - 1
+    const material = this.levelMaterials[sectionLevel ]
+
+    // build mesh from the meta data 
+    const mesh = this.buildMesh(data, material)
+
+    // set levelIdx 
+    const sectionId = data.section
+
+    // set the level info in the state or create them
+    // however this is effectively putting the mesh meta info
+    // inside an object associated with an level, however
+    // for the expressed purpose of displaying sections,
+    // I dont want to place the mesh info inside the level
+    const section = state.sections[sectionId] || {
+        strokeColor: this.levelColors[sectionLevel],
+        fillColor: this.levelColors[sectionLevel],
+        name: `${sectionId}`,
+        walls: {
+          name: `Walls [Section #${sectionId}]`,
+          active: false,
+          meshes: []
+        },
+        floor: {
+          meshes: [],
+          name: `Floor [Section #${sectionId}]`,
+          dbIds: data.dbId,
+          active: false,
+          paths: []
+        },
+        report: {
+          level: `Level ${sectionLevel+1}`,
+          boundingBox: msg.sectionBox,
+          walls: []
+        }
+    }
+
+    // retrieve specific level
+    state.sections[sectionId] = section
+
+    // push new mesh into the level
+    section.floor.meshes.push(mesh)
+
+    // The map() method creates a new array with the results 
+    // of calling a function for every array element.
+    // create paths for the floor of the level
+    const lines = data.pathEdges.map((edge) => {
+
+      const geometry = new THREE.Geometry()
+
+      edge.start.z += 0.05
+      edge.end.z += 0.05
+
+      geometry.vertices.push(
+        new THREE.Vector3(
+          edge.start.x,
+          edge.start.y,
+          edge.start.z))
+
+      geometry.vertices.push(
+        new THREE.Vector3(
+          edge.end.x,
+          edge.end.y,
+          edge.end.z))
+
+      geometry.computeLineDistances()
+
+      return new THREE.Line(geometry,
+        this.linesMaterial,
+        THREE.LinePieces)
+    })
+
+    section.floor.paths.push({
+      lines
+    })
+
+    // const wall = {
+    //   path: data.pathEdges,
+    //   dbId: mesh.dbId
+    // }
+
+    // Toolkit.getProperties(
+    //   this.viewer.model,
+    //   mesh.dbId).then((properties) => {
+
+    //     wall.properties = properties
+    //   })
+
+    // level.report.walls.push(wall)
+
+    // const progress =
+    //   (++this.nbMeshesLoaded) * 100 /
+    //   (data.levelCount * data.wallCount)
+
+    // if (progress === 100) {
+
+    //   this.notification.dismissAfter = 2000
+    //   this.notification.status = 'success'
+    // }
+
+    // this.notification.message =
+    //   `Processing Meshes `+
+    //   `- Progress: ${progress.toFixed(2)}%`
+
+    // this.options.notify.update(this.notification)
+
+    this.react.setState({
+      sections: state.sections
+    })
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to render section floor
+  //
+  /////////////////////////////////////////////////////////
+
+    onSectionFloorClicked (sectionId) {
+
+    const state = this.react.getState()
+    console.log('state', state)
+
+    // retrieve relevant section
+    let section = state.sections[sectionId]
+
+    section.floor.active = !section.floor.active
+
+    this.react.setState({
+      sections: state.sections
+    })
+
+    const meshes = section.floor.meshes
+
+    if (section.floor.active) {
+
+      section.floor.paths.forEach((path) => {
+
+        path.lines.forEach((line) => {
+
+          this.drawLine(line)
+        })
+      })
+
+      meshes.forEach((mesh) => {
+        this.viewer.impl.scene.add(mesh)
+        this.intersectMeshes.push(mesh)
+      })
+
+    } else {
+
+      section.floor.paths.forEach((path) => {
+
+        path.lines.forEach((line) => {
+
+          this.clearLine(line)
+        })
+      })
+
+      meshes.forEach((mesh) => {
+        this.viewer.impl.scene.remove(mesh)
+      })
+
+      const meshIds = meshes.map((mesh) => {
+        return mesh.id
+      })
+
+      this.intersectMeshes =
+        this.intersectMeshes.filter((mesh) => {
+
+          return !meshIds.includes(mesh.id)
+        })
+    }
+
+    const viewerState = this.viewer.getState({viewport: true})
+
+    this.viewer.restoreState(viewerState)
+
+
+    // const nbActiveWalls = state.sections.filter((section) => {
+    //   return section.walls.active
+    // })
+
+    let nbActiveFloors = []
+
+    for(let sectionName in state.sections) {
+
+      let section = state.sections[sectionName]
+
+      if(section.floor.active) {
+         nbActiveFloors.push(sectionName)
+      }
+    }
+
+
+
+    // if ((nbActiveWalls.length + nbActiveFloors.length)) {
+    if ((nbActiveFloors.length)) {
+
+      Toolkit.hide(this.viewer, this.rootId)
+      this.eventTool.activate()
+
+    } else {
+
+      Toolkit.show(this.viewer, this.rootId)
+      this.eventTool.deactivate()
+    }
+  }
+
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to preprocess user provided area,
+  // meant to provide functional parameters for paper. Will 
+  // be updated soon
+  /////////////////////////////////////////////////////////
+  retrieveSections(data){
+    let sectionBoundingBoxes = data.boxes
+    // get current state
+    const state = this.react.getState()
+    // get the current saved sections in the state
+    let currSectionBox = state.sectionBox
+    // get the current names of the saved boxes
+    let currBoxKeys = state.boxKeys
+    // get current bounding boxes
+    let currBBoxes = state.bBoxes
+
+    // get the current zones in the state
+    let zones = state.zones
+    // get the corresponding heights of the levels in the state
+    let heights = state.heights
+    // iterate through the zones
+    for (let box in sectionBoundingBoxes) {
+      
+        // create new title
+        let title = box
+
+        // retrieve the planes in zones
+        let sBox = sectionBoundingBoxes[box]['sBox']
+        let bBox = sectionBoundingBoxes[box]['bBox']
+        
+        // save the new planes in currSectionBox
+        let newSBox = sBox.map(function(plane) { 
+          let newPlane = new THREE.Vector4() 
+          newPlane.x = plane.x
+          newPlane.y = plane.y
+          newPlane.z = plane.z
+          newPlane.w = plane.w
+          return newPlane
+        })
+
+        // create min and max to hold max and min of the bounding box
+        let bBoxMin = bBox.min
+        let bBoxMax = bBox.max
+
+        // create the bounding box for  the section cut
+        let newBBox = new THREE.Box3(bBoxMin, bBoxMax)
+
+        // save the bounding box
+        currBBoxes.push(newBBox)
+
+        // save the section cut
+        currSectionBox[title] = newSBox
+
+        // save the corresonding title of the section cut
+        currBoxKeys.push(title)
+
+
+    }
+
+      // set state again
+      this.react.setState({
+      sectionBox: currSectionBox,
+      boxKeys: currBoxKeys,
+      bBoxes: currBBoxes
+
+    })
+
+
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to find elements inside a user 
+  // provided section box
+  /////////////////////////////////////////////////////////
+
+  findElementBoundingBox(){
+
+    // get current state  
+    const state = this.react.getState()
+
+    // create empty dictionary to hold information of each bim elem's section box
+    let sectionToDbIds = {}
+
+    for (let key of state.boxKeys){
+      sectionToDbIds[key] = []
+    }
+
+    // get instance tree of model
+    const instanceTree = this.viewer.model.getData().instanceTree
+
+    // get all dbId in a model
+    let dbIds = this.getAlldbIds(instanceTree.getRootId())
+
+    // get rootID to search for all the child
+    const rootId = instanceTree.getRootId()
+
+    let parentId = 0
+
+    // test each children to see which section it is in
+    for (let dbId of dbIds){
+
+    let tempBoxes = this.findSections(this.viewer.model, dbId)
+
+
+    for (let box of tempBoxes){
+      let index =  state.bBoxes.indexOf(box)
+      let boxKey = state.boxKeys[index]
+      sectionToDbIds[boxKey].push(dbId)
+      }
+    }
+
+
+
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to extract bounding box based on 
+  // user provided section box, meant to provide functional 
+  // parameters for paper. Will be updated soon
+  //
+  /////////////////////////////////////////////////////////
+
+  extractBoundingBox(){
+
+    const state = this.react.getState()
+
+    // cycle through all the elements of the model
+
+    let elements = this.findSections(this.viewer.model, 3188)
+
+
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to test if an model element is 
+  // inside a boundingBox
+  //
+  /////////////////////////////////////////////////////////
+  /**
+  * gets all section that the selected element overlaps more than 50 percent
+  * of its volume with
+  */
+  findSections(model, dbId){
+    const state = this.react.getState()
+
+    const modelFloors = state.bBoxes;
+
+    if(!modelFloors){
+      return null;
+    }
+    const box = this._getBBOX(model, dbId);
+    const origin = new THREE.Vector3();
+    const boxX = box.max.x - box.min.x;
+    const boxY = box.max.y - box.min.y;
+    const boxZ = box.max.z - box.min.z;
+    const boxVolume = boxX*boxY*boxZ;
+    const doesOverlap = (floor)=>{
+      if(!isFinite(floor.min.x)){
+        return false;
+      }
+      const minX = Math.max(floor.min.x, box.min.x);
+      const minY = Math.max(floor.min.y, box.min.y);
+      const minZ = Math.max(floor.min.z, box.min.z);
+      const maxX = Math.min(floor.max.x, box.max.x);
+      const maxY = Math.min(floor.max.y, box.max.y);
+      const maxZ = Math.min(floor.max.z, box.max.z);
+      const dX = Math.max(maxX - minX, 0)
+      const dY = Math.max(maxY - minY, 0)
+      const dZ = Math.max(maxZ - minZ, 0)
+      const intersectVolume = dX*dY*dZ;
+      return intersectVolume / boxVolume > 0.5;
+    }
+    return modelFloors.filter(doesOverlap.bind(null));
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo. This is essentially a helper 
+  // function for findSections, however, this can be eliminated
+  // because it simply generate a bounding box given a specific 
+  // dbId
+  //
+  /////////////////////////////////////////////////////////
+
+
+  _getBBOX(model, dbId){
+  const fragBox = new THREE.Box3()
+  const nodeBox = new THREE.Box3()
+
+  const it = model.getData().instanceTree;
+  const fragList = model.getFragmentList();
+  it.enumNodeFragments(dbId, fragId=>{
+    fragList.getWorldBounds(fragId, fragBox);
+    nodeBox.union(fragBox);
+  }, true);
+  return nodeBox;
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo. A helper function for 
+  // findSections, it finds all the dbID for a model
+  /////////////////////////////////////////////////////////
+  getAlldbIds (rootId) {
+    let instanceTree = this.viewer.model.getData().instanceTree
+    let alldbId = []
+    if (!rootId) {
+      return alldbId
+    }
+    let queue = []
+    queue.push(rootId)
+    while (queue.length > 0) {
+      let node = queue.shift()
+      alldbId.push(node);
+      instanceTree.enumNodeChildren(node, function(childrenIds) {
+        queue.push(childrenIds);
+      });
+    }
+    return alldbId;
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to load sectionbox buttons
+  //
+  /////////////////////////////////////////////////////////
+  trial(){
+    const selected = NOP_VIEWER.getSelection()
+
+    const dbId = selected[0]
+    // decided to call this category component
+    const category = 'Component'
+    const count = 1
+
+    const geometry = this.getComponentGeometry(dbId)
+
+    const state = this.react.getState()
+
+    // msgId also matters
+    const msg = {
+      boundingBox: this.getComponentBoundingBox(dbId),
+      matrixWorld: geometry.matrixWorld,
+      nbMeshes: geometry.meshes.length,
+      msgId: 'MSG_ID_COMPONENT_Test',
+      category,
+      count,
+      dbId
+    }
+
+    geometry.meshes.forEach((mesh, idx) => {
+
+      msg['positions' + idx] = mesh.positions
+      msg['indices' + idx] = mesh.indices
+      msg['stride' + idx] = mesh.stride
+    })
+
+    this.worker.postMessage(msg)
+
+    const levels = state.levels
+
+    const level = levels[0]
+
+    const meshes = level.floor.meshes
+
+
+      level.floor.paths.forEach((path) => {
+
+        path.lines.forEach((line) => {
+
+          this.drawLine(line)
+        })
+      })
+
+      meshes.forEach((mesh) => {
+        this.viewer.impl.scene.add(mesh)
+        this.intersectMeshes.push(mesh)
+      })
+
+}
+  /////////////////////////////////////////////////////////
   // Function added by Yumo to load sectionbox buttons
   //
   /////////////////////////////////////////////////////////
   loadSectionBox(title){
     //Get the state
     const state = this.react.getState()
-    // Get the savedbox
-    let currSavedbox = state.savedbox
-    let cutPlanes = currSavedbox[title]
-    // Set planes from savedbox
-    NOP_VIEWER.setCutPlanes(cutPlanes)
 
-    
+    // Get the sectionBox
+    let currSectionBox = state.sectionBox
+    let cutPlanes = currSectionBox[title]
+    // Set planes from sectionBox
+    NOP_VIEWER.setCutPlanes(cutPlanes)
 
   }
 
@@ -1112,19 +1756,19 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     // get planes from section box
     const boxPlanes = NOP_VIEWER.getCutPlanes()
     // Define the saved box
-    let newSavedBox = state.savedbox
+    let newSectionBox = state.sectionBox
     
 
-    newSavedBox[newBoxKey] = boxPlanes
+    newSectionBox[newBoxKey] = boxPlanes
 
     // Set state to include sectionbox info
     this.react.setState({
 
-      savedbox: newSavedBox,
+      sectionBox: newSectionBox,
       Misc: newMisc,
       boxIDCounter: i,
     })
-
+    
     
   }
 
@@ -1144,123 +1788,22 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
       </MenuItem>);
   }
 
-
   /////////////////////////////////////////////////////////
-  // Function added by Yumo to initiate the and prompt user to 
-  // insert svg on to the model by clicking
-  //
+  // Function added by Yumo to add dropdown buttons for rendering
+  // Section mesh
   /////////////////////////////////////////////////////////
-  onMouseClick (event) {
-    console.log('onMouseClick called')
-    var screenPoint = {
-        x: event.clientX,
-        y: event.clientY
-    }; 
-
-    //get the selected 3D position of the object
-    var hitTest = this.viewer.impl.hitTest(screenPoint.x,screenPoint.y,true); 
-    if(hitTest)
-    {  
-       this.drawPushpin({x:hitTest.intersectPoint.x,
-                    y:hitTest.intersectPoint.y,
-                    z:hitTest.intersectPoint.z});
-    }
-  }
- 
-  //generate a random id for each pushpin markup
-  makeid() {
-    console.log('makeid called')
-    var text = "";
-    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    
-    for( var i=0; i < 5; i++ )
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-    
-    return text;
-    }
-
-  drawPushpin(pushpinModelPt){  
-    console.log('drawPushpin called')
-    //convert 3D position to 2D screen coordination
-    var screenpoint = this.viewer.worldToClient(
-                      new THREE.Vector3(pushpinModelPt.x,
-                                        pushpinModelPt.y,
-                                        pushpinModelPt.z,));
-
-      //build the div container
-      var randomId = this.makeid();
-      var htmlMarker = '<div id="mymk' + randomId + '"></div>';
-      var parent = this.viewer.container
-      $(parent).append(htmlMarker);
-      $('#mymk'+randomId ).css({
-          'pointer-events': 'none',
-          'width': '20px',
-          'height': '20px',
-          'position': 'absolute',
-          'overflow': 'visible' 
-          });
-        
-      //build the svg element and draw a circle
-        $('#mymk'+randomId).append('<svg id="mysvg'+randomId+ '"></svg>')
-        var snap = Snap($('#mysvg'+randomId)[0]);
-        var rad = 12;
-        var circle = snap.paper.circle(14, 14, rad);
-        circle.attr({
-            fill: "#FF8888",
-            fillOpacity: 0.6,
-            stroke: "#FF0000",
-            strokeWidth: 3
-        }); 
-
-        //set the position of the SVG
-        //adjust to make the circle center is the position of the click point
-        var $container = $('#mymk'+randomId); 
-        $container.css({
-            'left': screenpoint.x - rad*2,
-            'top': screenpoint.y - rad
-        }); 
-        
-        //store 3D point data to the DOM
-        var div = $('#mymk'+randomId);
-        //add radius info with the 3D data
-        pushpinModelPt.radius = rad;
-        var storeData = JSON.stringify(pushpinModelPt);
-        div.data('3DData', storeData);
+  renderMeshMenu(title, i){
+    return(
+      <MenuItem 
+      key={i} 
+      eventKey={i}
+      id = {`${title}-${i}`}
+      onClick = {()=>this.onSectionFloorClicked(title)}
+      >
+        {title}
+      </MenuItem>);
   }
 
-  initiateSVG(){
-    console.log('initiateSVG called');
-
-    this.viewer.container.addEventListener("click", this.onMouseClick)
-    //delegate the event of CAMERA_CHANGE_EVENT
-    this.viewer.addEventListener(Autodesk.Viewing.CAMERA_CHANGE_EVENT, function(rt){  
-
-      //find out all pushpin markups
-      var $eles = $("div[id^='mymk']"); 
-      console.log($eles)
-      var DOMeles = $eles.get();
-
-      for(var index in DOMeles){
-         
-        //get each DOM element
-        var DOMEle = DOMeles[index];
-        var divEle = $('#' + DOMEle.id);
-        //get out the 3D coordination
-         var val = divEle.data('3DData'); 
-         var pushpinModelPt = JSON.parse(val);
-         //get the updated screen point
-         var screenpoint = this.viewer.worldToClient(new THREE.Vector3(
-          pushpinModelPt.x,
-          pushpinModelPt.y,
-          pushpinModelPt.z,)); 
-          //update the SVG position.
-          divEle.css({
-              'left': screenpoint.x - pushpinModelPt.radius*2,
-              'top': screenpoint.y - pushpinModelPt.radius
-              }); 
-        } 
-    });  
-  }
 
   /////////////////////////////////////////////////////////
   // Function added by Yumo to involke function to add button
@@ -1269,34 +1812,49 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   renderAddOn(title, i){
     const state = this.react.getState();
 
-
     return (
       <div>
-        <DropdownButton
-          bsStyle={'default'}
-          title={title}
-          key={i}
-          id={`dropdown-basic-${i}`}
-        >
-          {state.Misc.map(this.renderMenu)}
-
-        </DropdownButton>
-
-        <Button 
-        bsStyle="primary"
-        onClick={this.saveSectionBox}>
-          Save
-        </Button>
+        <div>
+          <div>
+            <h5>Manually Set & Load Section</h5>
+          </div>
+            <DropdownButton
+            bsStyle={'default'}
+            title={title}
+            key={i}
+            id={`dropdown-basic-${i}`}
+            >
+            {state.boxKeys.map(this.renderMenu)}
+            </DropdownButton>
+            <Button 
+            bsStyle="primary"
+            onClick = {this.extractBoundingBox}>
+              Extract Section
+            </Button>
+        </div>
+        <div>
+          <div>
+            <h5>Render Mesh for Each Section</h5>
+          </div>
+            <DropdownButton
+            bsStyle={'default'}
+            title={title}
+            key={i}
+            id={`dropdown-basic-${i}`}
+            >
+            {state.boxKeys.map(this.renderMeshMenu)}
+            </DropdownButton>
+        </div>
       </div>
   );
   }
 
   /////////////////////////////////////////////////////////
-  // Function added by Yumo to add dropdown buttons
+  // Function added by Yumo to add dropdown buttons - No longer Used
   //
   /////////////////////////////////////////////////////////
   renderDropDown(title, i){
-    const state = this.react.getState();
+    const state = this.react.getState()
 
     return (
       <DropdownButton
@@ -1310,6 +1868,117 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   );
   }
 
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo extract width set by user
+  //
+  /////////////////////////////////////////////////////////
+  extractModelWidth(){
+    // get measurement set by user
+    const widthHTML = document.getElementsByClassName('measure-selection-area')[0]
+    const width = widthHTML.offsetWidth
+    const widthLeft = widthHTML.offsetLeft
+    
+    // set width in state
+    this.react.setState({
+
+      width: width,
+      widthLeft: widthLeft
+    })
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to extract height set by user
+  //
+  /////////////////////////////////////////////////////////
+  extractModelHeight(){
+    // get measurement set by user
+    const heightHTML = document.getElementsByClassName('measure-selection-area')[0]
+    const height = heightHTML.offsetWidth
+    const heightTop = heightHTML.offsetTop
+    
+    // set height in state
+    this.react.setState({
+
+      width: width,
+      heightTop: heightTop
+    })
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function added by Yumo to extract areas set by user 
+  //
+  /////////////////////////////////////////////////////////
+
+  extract2DAreas(){
+    //get area parameters defined by user in html form
+    const areasHTML = document.getElementsByClassName('measure-selection-area')
+    //process areasHTML in steps of 4
+    let i = 0
+    for (i=0; i < areasHTML.length; i+4) {
+      // Runs 5 times, with values of step 0 through 4.
+      console.log(areasHTML[i])
+      console.log(areasHTML[i+1])
+      console.log(areasHTML[i+2])
+      console.log(areasHTML[i+3])
+    }
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function to add by Yumo to render interface for 2D 
+  // model division
+  //
+  /////////////////////////////////////////////////////////
+
+  render2DInterface(){
+    return(
+      <div>
+        <div>
+          <h3>2D Model Division</h3>
+        </div>
+        <div>
+          <h5>Setup Parameter for cut</h5>
+        </div>
+        <div>
+          <Button 
+          bsStyle="primary"
+          onClick = {this.extractModelWidth}>
+            Set Width
+          </Button>
+        </div>
+        <div>
+          <Button 
+          bsStyle="primary"
+          onClick = {this.extractModelHeight}>
+            Set Height
+          </Button>
+        </div>
+        <div>
+          <h5>Set areas on 2D drawing</h5>
+        </div>
+        <div>
+          <Button 
+          bsStyle="primary"
+          onClick = {this.extract2DAreas}>
+            Extract Areas
+          </Button>
+        </div>
+        <div>
+          <Button 
+          bsStyle="primary"
+          onClick = {this.trial}>
+            Test
+          </Button>
+        </div>
+        <div>
+          <Button 
+          bsStyle="primary"
+          onClick = {()=>this.onSectionFloorClicked('level 1 a')}>
+            Render Section Level 1 a
+          </Button>
+        </div>
+      </div>
+      );
+  }
 
 
   /////////////////////////////////////////////////////////
@@ -1318,6 +1987,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
   /////////////////////////////////////////////////////////
   render (opts = {}) {
     const state = this.react.getState()
+
     return (
       <WidgetContainer
         renderTitle={() => this.renderTitle(opts.docked)}
@@ -1325,11 +1995,11 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
         className={this.className}>
         { 
           // state.buttons.map(this.renderDropDown)
+          this.render2DInterface()
         }
-        { 
-          state.buttons.map(this.renderAddOn)
-        }
-        { this.renderContent () }
+        { this.renderAddOn("Display Section", 0) }
+
+        { this.renderContent() }
 
       </WidgetContainer>
     )
