@@ -654,6 +654,9 @@ async function workerMain () {
 
     postSectionBox(boxes)
 
+  // create a temp obj to hold one to one correspondence between floor id and floor's DbId
+  let levelToDbId = {}
+
   // cycling through each floor's bounding box
   for (let idx = mergedBoxes.length-2; idx >= 0 ; --idx) {
 
@@ -702,6 +705,8 @@ async function workerMain () {
       // save a floor id for the mesh
       mesh.floorDbIds = mergedBoxes[idx].dbIds
 
+      // save info to levelToDbId
+      levelToDbId[idx] = mergedBoxes[idx].dbIds[0]
       /////////////////////////////////////////////////////////
       // Yumo Notes - changing edges for the mesh with filtering 
       // edges, notes that the mesh here is still meta data
@@ -730,50 +735,55 @@ async function workerMain () {
       const sectionBoxMesh = createSectionBoundingMesh(sectionBox)
       const sectionBSP = new ThreeBSP(sectionBoxMesh)
 
+      const sectionLevel = parseInt(box.split(' ')[1]) - 1
+
       // interate through floor mesh to see bsp intersect
       floorMeshes.forEach((floorMesh) => {
-      // check where the section and the floor intersect and save the result
-      const resultBSP = sectionBSP.intersect(floorMesh.bsp)
+      // check if the floorMesh is the correct one for the section
+      if (levelToDbId[sectionLevel] === floorMesh.dbId){
+        // check where the section and the floor intersect and save the result
+        const resultBSP = sectionBSP.intersect(floorMesh.bsp)
 
-      // save the intersecting mesh of the two bounding box
-      const mesh = resultBSP.toMesh()
+        // save the intersecting mesh of the two bounding box
+        const mesh = resultBSP.toMesh()
 
-      // get the part edges
-      const edges = getHardEdges(mesh)
+        // get the part edges
+        const edges = getHardEdges(mesh)
 
-      /////////////////////////////////////////////////////////
-      // Yumo Notes - changing edges for the mesh, filtering out edges that 
-      // are not in the level box
-      /////////////////////////////////////////////////////////
-      const filteredEdges = edges.filter((edge) => {
+        /////////////////////////////////////////////////////////
+        // Yumo Notes - changing edges for the mesh, filtering out edges that 
+        // are not in the level box
+        /////////////////////////////////////////////////////////
+        const filteredEdges = edges.filter((edge) => {
 
-        return (
-          (edge.start.z < sectionBox.min.z + 0.1) &&
-          (edge.end.z   < sectionBox.min.z + 0.1)
-        )
-      })
+          return (
+            (edge.start.z < sectionBox.min.z + 0.1) &&
+            (edge.end.z   < sectionBox.min.z + 0.1)
+          )
+        })
 
-            // save a floor id for the mesh
-      mesh.sectionName = box
+        // save a floor id for the mesh
+        mesh.sectionName = box
 
-      /////////////////////////////////////////////////////////
-      // Yumo Notes - changing edges for the mesh with filtering 
-      // edges, notes that the mesh here is still meta data
-      /////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////
+        // Yumo Notes - changing edges for the mesh with filtering 
+        // edges, notes that the mesh here is still meta data
+        /////////////////////////////////////////////////////////
 
-      // set the path edge for the mesh  
-      mesh.pathEdges = filteredEdges
+        // set the path edge for the mesh  
+        mesh.pathEdges = filteredEdges
 
-      // save dbId for the mesh
-      mesh.dbId = floorMesh.dbId
+        // save dbId for the mesh
+        mesh.dbId = floorMesh.dbId
 
-      // post info for the wall
-      postSectionFloorMesh (mesh, {
-        sectionCount: Object.keys(boxes).length,
-        floorCount: floorMeshes.length,
-        section: box,
-        sectionBox
-      })
+        // post info for the wall
+        postSectionFloorMesh (mesh, {
+          sectionCount: Object.keys(boxes).length,
+          floorCount: floorMeshes.length,
+          section: box,
+          sectionBox
+        })
+      }
 
     })
 
@@ -823,10 +833,7 @@ async function workerMain () {
       })
 
     })    
-
-
   }
-
   self.close()
 }
 
