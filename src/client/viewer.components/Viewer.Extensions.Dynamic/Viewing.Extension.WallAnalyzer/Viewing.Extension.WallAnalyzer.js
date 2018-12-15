@@ -91,6 +91,12 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     this.react = this.options.react
 
+    // add feature to allow event 
+    this.viewer.container.addEventListener('mousemove', this.onMouseMove)
+
+    // add function to detect mesh intersection
+    this.pointerToRaycaster = this.pointerToRaycaster.bind(this)
+
     /////////////////////////////////////////////////////////
     // Yumo Notes - creates a worker to process mesh meta info
     // in the background
@@ -843,11 +849,51 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     throw new Error('Bad Hex Number: ' + hex)
   }
 
+  /////////////////////////////////////////////////////////
+  // Creates Raycaster object from the pointer
+  //
+  /////////////////////////////////////////////////////////
+  pointerToRaycaster (domElement, camera, pointer) {
 
-  // /////////////////////////////////////////////////////////
-  // //
-  // //
-  // /////////////////////////////////////////////////////////
+    const pointerVector = new THREE.Vector3()
+    const pointerDir = new THREE.Vector3()
+    const ray = new THREE.Raycaster()
+
+    const rect = domElement.getBoundingClientRect()
+
+    const x = ((pointer.clientX - rect.left) / rect.width) * 2 - 1
+    const y = -((pointer.clientY - rect.top) / rect.height) * 2 + 1
+
+    if (camera.isPerspective) {
+
+      pointerVector.set(x, y, 0.5)
+
+      pointerVector.unproject(camera)
+
+      ray.set(camera.position,
+        pointerVector.sub(
+          camera.position).normalize())
+
+    } else {
+
+      pointerVector.set(x, y, -1)
+
+      pointerVector.unproject(camera)
+
+      pointerDir.set(0, 0, -1)
+
+      ray.set(pointerVector,
+        pointerDir.transformDirection(
+          camera.matrixWorld))
+    }
+
+    return ray
+  }
+
+  /////////////////////////////////////////////////////////
+  // Function modified by Yumo to display result for mesh
+  //
+  /////////////////////////////////////////////////////////
   onMouseMove (event) {
 
     const pointer = event.pointers
@@ -862,13 +908,56 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     const intersectResults = rayCaster.intersectObjects(
       this.intersectMeshes, true)
 
+    // const hitTest = this.viewer.model.rayIntersect(
+    //   rayCaster, true, this.dbIds)
+
+    // const selections = intersectResults.filter((res) =>
+
+    //   (!hitTest || (hitTest.distance > res.distance))
+    // )
+
+    // if (selections.length) {
+
+    //   console.log('Custom meshes selected:')
+    //   console.log(selections)
+
+    //   return true
+    // }
+
+    // return false
+    console.log(intersectResults)
+
+    let transparentMaterial = new THREE.MeshBasicMaterial({
+      color: 0x7094FF,
+      opacity: 0.1,
+      transparent: true })
+
+    this.viewer.impl.matman().addMaterial(
+      'transparent',
+      transparentMaterial,
+      true)
+
+    for (let mesh of intersectResults){
+          // prevents issue when running viewer selection
+    mesh.geometry.attributes = {position:{array:[]}}
+
+    this.viewer.impl.sceneAfter.add(mesh)
+    this.viewer.impl.invalidate(true)
+
+    // prevents your mesh from being hidden
+    // when hidding other viewer components
+    this.viewer.setGhosting(false) 
+
+
+    }
+
   }
 
   /////////////////////////////////////////////////////////
   //
   //
   /////////////////////////////////////////////////////////
-  async onSelection (event) {
+  async onSelection(event) {
 
     if (event.selections.length) {
 
