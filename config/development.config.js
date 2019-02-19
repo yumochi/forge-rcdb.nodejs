@@ -56,9 +56,8 @@ const config = {
       accessTokenUri: '/authentication/v1/gettoken',
 
       baseUri: 'https://developer.api.autodesk.com',
-      clientSecret: 'T60847ccff23f402',
-      clientId: 'GI2zbvtCGJJMdPljNcvjbADdNj53S4GQ',
-
+      clientSecret: 'Os36Fe55sMoMvj5J',
+      clientId: 'DDFVbt4xTXGe0h5AO5g1EFY6vJ4xFvOH',
 
       scope: [
         'data:read',
@@ -88,11 +87,11 @@ const config = {
 
   database: {
     type: 'mongo',
-    dbName: 'forge',
+    dbName: 'raamac',
     user: 'raamac',
     pass: 'Raamac_2018!',
-    dbhost: 'ds261302.mlab.com',
-    port: 61302,
+    dbhost: 'ds231739.mlab.com',
+    port: 31739,
     models: {
       configurator: {
         collection:'configurator.models'

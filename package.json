@@ -47,6 +47,7 @@
     "express-rate-limit": "2.11.0",
     "express-session": "^1.15.1",
     "express-static-gzip": "^0.3.0",
+    "file-system": "^2.2.2",
     "forge-apis": "^0.4.3",
     "helmet": "3.9.0",
     "json2csv": "3.11.5",

@@ -74,9 +74,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
 
     // add functions to allow 2D model sectioning
     this.render2DInterface = this.render2DInterface.bind(this)
-    this.extractModelWidth = this.extractModelWidth.bind(this)
-    this.extractModelHeight = this.extractModelHeight.bind(this)
-    this.extract2DAreas = this.extract2DAreas.bind(this)
 
     // added functions to save section box that user draws
     this.saveSectionBox = this.saveSectionBox.bind(this)
@@ -85,11 +82,14 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     // create trial function to create mesh for a selected item
     this.trial = this.trial.bind(this)
 
-
     // function to allow more complex event handeling
     this.eventTool = new EventTool(this.viewer)
 
     this.react = this.options.react
+
+    // load json
+    this.loadReferenceBoundingBox = this.loadReferenceBoundingBox.bind(this)
+    this.loadZoneBoundingBoxes = this.loadZoneBoundingBoxes.bind(this)
 
     // add feature to allow event 
     this.viewer.container.addEventListener('mousemove', this.onMouseMove)
@@ -141,6 +141,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
       sectionBox:{},
       bBoxes: [],
       boxKeys: [],
+      referenceBoundingBox: null, 
       zones: {
                   a:[
                   [ 0.9999999999999998, 0, 0, -117.3212966918945],
@@ -216,9 +217,8 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     const state = this.react.getState()
     const zones = state.zones
 
-    this.postBoundingBoxesInfo('BoundingBox', 3)
-
     // create section based on user preference
+    // this.postBoundingBoxesInfo('BoundingBox', 3)
 
     return true
   }
@@ -259,6 +259,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
       sectionBox: {},
       bBoxes: [],
       boxKeys: [],
+      referenceBoundingBox: null, 
       zones: {
                   a:[
                   [ 0.9999999999999998, 0, 0, -117.3212966918945],
@@ -925,7 +926,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     // }
 
     // return false
-    console.log(intersectResults)
+    // console.log(intersectResults)
 
     let transparentMaterial = new THREE.MeshBasicMaterial({
       color: 0x7094FF,
@@ -1655,7 +1656,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     }
   }
 
-    /////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////
   // Function added by Yumo to render section floor
   //
   /////////////////////////////////////////////////////////
@@ -1676,7 +1677,7 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     })
 
     const meshes = section.walls.meshes
-    console.log(meshes)
+    // console.log(meshes)
 
     meshes.forEach((mesh) => {
 
@@ -2202,24 +2203,6 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
     })
   }
 
-  /////////////////////////////////////////////////////////
-  // Function added by Yumo to extract areas set by user 
-  //
-  /////////////////////////////////////////////////////////
-
-  extract2DAreas(){
-    //get area parameters defined by user in html form
-    const areasHTML = document.getElementsByClassName('measure-selection-area')
-    //process areasHTML in steps of 4
-    let i = 0
-    for (i=0; i < areasHTML.length; i+4) {
-      // Runs 5 times, with values of step 0 through 4.
-      console.log(areasHTML[i])
-      console.log(areasHTML[i+1])
-      console.log(areasHTML[i+2])
-      console.log(areasHTML[i+3])
-    }
-  }
 
   /////////////////////////////////////////////////////////
   // Function to add by Yumo to render interface for 2D 
@@ -2251,14 +2234,14 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
           </Button>
         </div>
         <div>
-          <h5>Set areas on 2D drawing</h5>
+          <h5>Retrieve Bounding Box for Model</h5>
+          <input type="file" id="modelFiles" onChange={(e)=>this.loadReferenceBoundingBox(e)} name="files[]" multiple />
+          <output id="modelList"></output>
         </div>
         <div>
-          <Button 
-          bsStyle="primary"
-          onClick = {this.extract2DAreas}>
-            Extract Areas
-          </Button>
+          <h5>Retrieve Bounding Box for Areas</h5>
+          <input type="file" id="zoneFiles" onChange={(e)=>this.loadZoneBoundingBoxes(e)} name="files[]" multiple />
+          <output id="zoneList"></output>
         </div>
         <div>
           <Button 
@@ -2271,6 +2254,126 @@ class WallAnalyzerExtension extends MultiModelExtensionBase {
       );
   }
 
+  /////////////////////////////////////////////////////////
+  // function added by Yumo to load json for processing
+  //
+  /////////////////////////////////////////////////////////
+  loadReferenceBoundingBox(evt)
+  {
+    let files = evt.target.files; // FileList object
+    let referenceBoundingBox;
+    let t = this;
+
+    // files is a FileList of File objects. List some properties.
+    let output = [];
+    for (let i = 0, f; f = files[i]; i++) {
+      output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+                  f.size, ' bytes, last modified: ',
+                  f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+                  '</li>');
+
+      let r = new FileReader();
+      r.onload = function(e) { 
+        let contents = e.target.result;
+        referenceBoundingBox = JSON.parse(contents);
+        t.react.setState({
+          referenceBoundingBox: referenceBoundingBox
+        })
+        // console.log(referenceBoundingBox)
+        const state = t.react.getState()
+        // console.log(state['referenceBoundingBox'])
+      }
+      r.readAsText(f);
+
+    }
+    document.getElementById('modelList').innerHTML = '<ul>' + output.join('') + '</ul>';
+
+    // console.log(referenceBoundingBox)
+    // const state = this.react.getState()
+    // console.log(state['referenceBoundingBox'])
+    
+  }
+
+  /////////////////////////////////////////////////////////
+  // function added by Yumo to load json for processing
+  //
+  /////////////////////////////////////////////////////////
+  loadZoneBoundingBoxes(evt)
+  {
+    const state = this.react.getState()
+    console.log(state['referenceBoundingBox'])
+    let t = this;
+
+    let files = evt.target.files; // FileList object
+
+    // files is a FileList of File objects. List some properties.
+    let output = [];
+    for (let i = 0, f; f = files[i]; i++) {
+      output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+                  f.size, ' bytes, last modified: ',
+                  f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+                  '</li>');
+
+      let r = new FileReader();
+      r.onload = function(e) { 
+        let contents = e.target.result;
+        console.log(contents) 
+        let zoneBoundingBoxes = JSON.parse(contents)
+
+        // still need to be defined specifically for each model
+        const modelBoundingBox = {
+          max: {
+            x: 120.3646,
+            y: 88.1747,
+            z: 0
+           },
+          min: {
+            x: -106.1909,
+            y: -88.7391,
+            z: 0
+          }
+        }
+
+        console.log(modelBoundingBox)
+        console.log(zoneBoundingBoxes)
+
+        const referenceBoundingBox = state['referenceBoundingBox'];
+
+        let newZoneBoundingBoxes = new Object()
+
+        const entries = Object.entries(zoneBoundingBoxes)
+        for (const [key, box] of entries) {
+          // this is the expected structure of the bounding box for each zone
+          let zoneBoundingBox = [
+                  [ 0.9999999999999998, 0, 0, -117.3212966918945],
+                  [ 0, 0.9999999999999998, 0, -51.32601165771483],
+                  [ 0, 0, 1, -31.037012100219727],
+                  [ -0.9999999999999998, 0, 0, -106.79097747802732],
+                  [ 0, -0.9999999999999998, 0, -51.65189743041991],
+                  [ 0, 0, -1, -24.38190269470215]
+                  ]
+          
+          zoneBoundingBox[0][3] = -1*((box['xMax'] - referenceBoundingBox['xMin'] ) / (referenceBoundingBox['xMax'] - referenceBoundingBox['xMin']) * (modelBoundingBox['max']['x'] - modelBoundingBox['min']['x']) + modelBoundingBox['min']['x'])
+          zoneBoundingBox[1][3] = -1*((box['yMax'] - referenceBoundingBox['yMin'] ) / (referenceBoundingBox['yMax'] - referenceBoundingBox['yMin']) * (modelBoundingBox['max']['y'] - modelBoundingBox['min']['y']) + modelBoundingBox['min']['y'])
+          zoneBoundingBox[3][3] = (box['xMin'] - referenceBoundingBox['xMin'] ) / (referenceBoundingBox['xMax'] - referenceBoundingBox['xMin']) * (modelBoundingBox['max']['x'] - modelBoundingBox['min']['x']) + modelBoundingBox['min']['x']
+          zoneBoundingBox[4][3] = (box['yMin'] - referenceBoundingBox['yMin'] ) / (referenceBoundingBox['yMax'] - referenceBoundingBox['yMin']) * (modelBoundingBox['max']['y'] - modelBoundingBox['min']['y']) + modelBoundingBox['min']['y']
+
+          newZoneBoundingBoxes[key] = zoneBoundingBox
+
+        }
+
+        t.react.setState({zones: newZoneBoundingBoxes})
+        console.log(t.react.getState())
+        t.postBoundingBoxesInfo('BoundingBox', Object.keys(newZoneBoundingBoxes).length)
+
+
+      }
+      r.readAsText(f);
+
+    }
+    document.getElementById('zoneList').innerHTML = '<ul>' + output.join('') + '</ul>';
+    
+  }
 
   /////////////////////////////////////////////////////////
   //
