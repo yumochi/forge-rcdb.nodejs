@@ -65,7 +65,7 @@
     "react-transition-group": "^2.4.0",
     "rimraf": "^2.6.1",
     "rmdir": "^1.2.0",
-    "sanitize-html": "1.15.0",
+    "sanitize-html": "2.3.2",
     "socket.io": "2.0.3",
     "superagent": "3.7.0",
     "util": "^0.10.3"
