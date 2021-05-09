@@ -126,7 +126,7 @@
     "jquery-nice-select": "^1.1.0",
     "less": "^2.7.3",
     "lockr": "^0.8.4",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.21",
     "node-sass": "^3.13.1",
     "npm": "^4.4.4",
     "optimize-js-plugin": "0.0.4",
