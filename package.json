@@ -30,7 +30,7 @@
   "dependencies": {
     "adm-zip": "^0.4.7",
     "archiver": "2.0.0",
-    "async": "2.4.1",
+    "async": "3.2.2",
     "autobind-decorator": "2.1.0",
     "babel-core": "^6.26.0",
     "babel-polyfill": "^6.13.0",
