@@ -166,7 +166,7 @@
     "resolve-url-loader": "^2.2.0",
     "sass-loader": "^2.0.1",
     "snapsvg": "^0.5.1",
-    "snyk": "^1.36.2",
+    "snyk": "^1.996.0",
     "socket.io-client": "^1.7.3",
     "style-loader": "^0.12.4",
     "sucrase": "^2.2.0",
