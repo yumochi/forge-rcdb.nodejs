@@ -50,7 +50,7 @@
     "file-system": "^2.2.2",
     "forge-apis": "^0.4.3",
     "helmet": "3.9.0",
-    "json2csv": "3.11.5",
+    "json2csv": "5.0.7",
     "memoizee": "^0.4.3",
     "moment": "2.19.3",
     "mongodb": "2.2.31",
